@@ -8,7 +8,7 @@ module.exports = {
             var dbo = db.db("banshee");
             dbo.collection(collection).findOne({$query:{},$orderby:{time:-1}}, (err, result) => {
                 if(err) throw err;
-                if(result) {
+                if(result.time) {
                     cb(result.time)
                 } else {
                     cb(0);
