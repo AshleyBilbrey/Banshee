@@ -13,9 +13,10 @@ module.exports.toggle = function(user, collection, callback) {
                     callback(false);
                 })
             } else {
+                let d = new Date();
                 dbo.collection(collection).insertOne({
                     userid: user.id,
-                    isThing: true
+                    time: d.getTime()
                 }, (err, res) => {
                     if(err) throw err;
                     callback(true);
