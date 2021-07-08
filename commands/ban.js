@@ -1,0 +1,73 @@
+let is = require("../util/isSuper.js")
+let broadcaster = require("../util/bc.js")
+let tdb = require("../util/toggleDB.js")
+let bn = require("../util/bonkNum.js")
+require('dotenv').config({ path: '../' })
+
+module.exports = {
+	name: 'ban',
+	description: 'Ban a user on all servers Banshee is on.',
+	execute(message, args, client) {
+
+        if(is.isSuper(message.author) || message.author.id == process.env.BOT_OWNER) {
+            if(args.length >= 1) {
+                let str = args[0];
+                if(str.startsWith('<@') && str.endsWith('>')) {
+                    str = str.slice(2, -1);
+                    if (str.startsWith('!')) {
+                        str = str.slice(1);
+                    }
+                }
+                client.users.fetch(str).then(newBan => {
+                    if(newBan) {
+                        if(is.isSuper(newBan) || newBan.id == process.env.BOT_OWNER) {
+                            message.channel.send("You cannot ban a superuser.")
+                        } else {
+                            let cb = function(added) {
+                                if(added) {
+                                    message.channel.send("Added **" + newBan.username + "#" + newBan.discriminator + "** to the ban list.");
+                                    broadcaster.bc("Hello, **" + newBan.username + "#" + newBan.discriminator + "** was added to the ban list. You may unban this user on your server and Banshee will not reban this user unless you use " + process.env.PREFIX + " refresh.\nThe person who made this action was **" + message.author.username + "#" + message.author.discriminator + "**.", client)
+                                    bn.setNum(client);
+                                    client.guilds.cache.forEach(guild => {
+                                        try {
+                                            guild.members.ban(newBan, { days: 1, reason: "Banned by Banshee"})
+                                        } catch {
+                                            client.users.fetch(process.env.BOT_OWNER).then((user) => {
+                                                user.send("There was an issue banning user " + newBan.username + "#" + newBan.discriminator + " in server " + guild.name);
+                                                if(!guild.member(client.user).hasPermission('BAN_MEMBERS')) {
+                                                    user.send("It is because I do not have permission to ban in the server.");
+                                                }
+                                            })
+                                        }
+                                    })
+                                } else {
+                                    message.channel.send("Removed **" + newBan.username + "#" + newBan.discriminator + "** from the ban list.");
+                                    broadcaster.bc("Hello, **" + newBan.username + "#" + newBan.discriminator + "** has been removed from the ban list.\nIf you banned this user separately then Banshee did not unban this user.\nThe person who made this action was **" + message.author.username + "#" + message.author.discriminator + "**.", client)
+                                    bn.setNum(client);
+                                    client.guilds.cache.forEach(guild => {
+                                        guild.fetchBan(newBan).then(binfo => {
+                                            if(binfo && binfo.reason == "Banned by Banshee") {
+                                                guild.members.unban(newBan, "Unbanned by Banshee");
+                                            }
+                                        })
+                                    })
+                                }
+                            }
+                            tdb.toggle(newBan, "bans", cb)
+                        }
+    
+                    } else {
+                        message.channel.send("That is not a valid user.")
+                    }
+                })
+                
+            } else {
+                message.channel.send("You must include a user.");
+            }
+
+        } else {
+            message.channel.send("You must be a superuser to run this command.");
+        }
+
+	},
+};
