@@ -32,8 +32,6 @@ client.on('message', message => {
 	
 				}
 				fc.catch(message.content, cb);
-			} else {
-				message.channel.send("DEBUG: You are a super user...")
 			}
 		}
 
