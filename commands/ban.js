@@ -33,12 +33,16 @@ module.exports = {
         
                                                 let cb = function(added) {
                                                     if(added) {
-                                                        message.channel.send("Added **" + newBan.username + "#" + newBan.discriminator + "** to the ban list.");
-                                                        broadcaster.bc("Hello, **" + newBan.username + "#" + newBan.discriminator + "** was added to the ban list. You may unban this user on your server and Banshee will not reban this user unless you use " + process.env.PREFIX + " refresh.\nThe person who made this action was **" + message.author.username + "#" + message.author.discriminator + "**.", client)
+                                                        let banReason = ""
+                                                        for(let i = 1; i < args.length; i++) {
+                                                            banReason += args[i] + " ";
+                                                        }
+                                                        message.channel.send("Added **" + newBan.username + "#" + newBan.discriminator + "** to the ban list.\nReason: " + banReason);
+                                                        broadcaster.bc("Hello, **" + newBan.username + "#" + newBan.discriminator + "** was added to the ban list.\nReason: " + banReason + "\nYou may unban this user on your server and Banshee will not reban this user unless you use " + process.env.PREFIX + " refresh.\nThe person who made this action was **" + message.author.username + "#" + message.author.discriminator + "**.", client)
                                                         bn.setNum(client);
                                                         client.guilds.cache.forEach(guild => {
                                                             try {
-                                                                guild.members.ban(newBan, { days: 1, reason: "Banned by Banshee"})
+                                                                guild.members.ban(newBan, { days: 1, reason: "Banned by Banshee - " + banReason})
                                                             } catch {
                                                                 client.users.fetch(process.env.BOT_OWNER).then((user) => {
                                                                     user.send("There was an issue banning user " + newBan.username + "#" + newBan.discriminator + " in server " + guild.name);
@@ -54,7 +58,7 @@ module.exports = {
                                                         bn.setNum(client);
                                                         client.guilds.cache.forEach(guild => {
                                                             guild.fetchBan(newBan).then(binfo => {
-                                                                if(binfo && binfo.reason == "Banned by Banshee") {
+                                                                if(binfo && binfo.reason.includes("Banned by Banshee")) {
                                                                     guild.members.unban(newBan, "Unbanned by Banshee");
                                                                 }
                                                             })
