@@ -7,14 +7,17 @@ module.exports = {
 	description: 'Broadcast a message to all enrolled users.',
 	execute(message, args, client) {
         
-        if(is.isSuper(message.author) || message.author.id == process.env.BOT_OWNER) {
-            let str = message.content.slice(2 + process.env.PREFIX.length + this.name.length);
-            str += "\nThe person who made this broadcast was **" + message.author.username + "#" + message.author.discriminator + "**."
-            broadcaster.bc(str, client);
-            message.channel.send("Broadcast sent!");
-        } else {
-            message.channel.send("You must be a superuser to run this command.");
+        let iscb = function(isSuper) {
+            if(isSuper) {
+                let str = message.content.slice(2 + process.env.PREFIX.length + this.name.length);
+                str += "\nThe person who made this broadcast was **" + message.author.username + "#" + message.author.discriminator + "**."
+                broadcaster.bc(str, client);
+                message.channel.send("Broadcast sent!");
+            } else {
+                message.channel.send("You must be a superuser to run this command.");
+            }
         }
-
+        
+        is.isSuper(message.author, iscb)
 	},
 };

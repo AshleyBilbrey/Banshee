@@ -18,19 +18,27 @@ for (const file of commandFiles) {
 }
 
 client.on('message', message => {
-	if (!message.content.startsWith(prefix) || message.author.bot) {
-		if(!is.isSuper(message.author) && message.author.id != process.env.BOT_OWNER) {
-			let cb = function() {
-				message.delete();
-				message.channel.send("Hi **" + message.author.username + "#" + message.author.discriminator + "**! Something in your message is in our spam filter. If you beleive this is a mistake, please contact one of the " + process.env.PREFIX + " supers. Thanks!").then(reply => {
-					setTimeout(() => {
-						reply.delete();
-					}, 5000);
-				})
 
+	if (!message.content.startsWith(prefix) || message.author.bot) {
+		let iscb = function(isSuper) {
+			if(!isSuper) {
+				let cb = function() {
+					message.delete();
+					message.channel.send("Hi **" + message.author.username + "#" + message.author.discriminator + "**! Something in your message is in our spam filter. If you beleive this is a mistake, please contact one of the " + process.env.PREFIX + " supers. Thanks!").then(reply => {
+						setTimeout(() => {
+							reply.delete();
+						}, 5000);
+					})
+	
+				}
+				fc.catch(message.content, cb);
+			} else {
+				message.channel.send("DEBUG: You are a super user...")
 			}
-			fc.catch(message.content, cb);
 		}
+
+		is.isSuper(message.author, iscb)
+		
 		
 	} else {
 		const args = message.content.slice(prefix.length).trim().split(/ +/);
