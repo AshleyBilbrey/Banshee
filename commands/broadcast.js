@@ -9,7 +9,7 @@ module.exports = {
         
         let iscb = function(isSuper) {
             if(isSuper) {
-                let str = message.content.slice(2 + process.env.PREFIX.length + this.name.length);
+                let str = message.content.slice(2 + process.env.PREFIX.length + 9);
                 str += "\nThe person who made this broadcast was **" + message.author.username + "#" + message.author.discriminator + "**."
                 broadcaster.bc(str, client);
                 message.channel.send("Broadcast sent!");
