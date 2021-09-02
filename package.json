@@ -19,6 +19,6 @@
   "dependencies": {
     "discord.js": "^12.5.3",
     "dotenv": "^10.0.0",
-    "mongodb": "^3.6.10"
+    "mongodb": "^3.7.0"
   }
 }

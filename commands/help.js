@@ -1,9 +1,19 @@
 require('dotenv').config({ path: '../' })
+let is = require("../util/isSuper.js")
 
 module.exports = {
 	name: 'help',
 	description: 'help',
 	execute(message, args, client) {
-		message.channel.send("Hello, my name is Banshee!\n\nI will automically start banning new spammers. To ban the list of previous spammers, use " + process.env.PREFIX + " refresh. This should usually be run the first time you add me to your server.\nYou may unban any user you wish and they will not be rebanned unless you use the refresh command.\n\nWe try to all of these bot mechanics as transparent as possible.\nTo view users who have permission to add new users to the ban list, use " + process.env.PREFIX + " supers\nEnroll in ban and transparency notifications by using " + process.env.PREFIX + " enroll\nView the source code and the link to add the bot to your server here. https://github.com/AshleyBilbrey/Banshee\n\nIf this bot interests you, and you are interested in other cyber security topics, consider joining Cyber Security Club at UC Davis! https://discord.gg/sRepsTT\n\nPlease help me bonk spammers! Report spammers to the admins of the Directory server.\nhttps://discord.gg/ucf44wN\nIt would be helpful to have the spammer's userid, which you can turn on in developer settings, then right click on their name and then click 'Copy ID'. Thank you!")
+		message.channel.send("__**Banshee**__\n\nBanshee will ban known spammers for you automatically!. For more bot information, how to add the bot to your own server, reporting a spammer, or help, please join this server. https://discord.gg/b8h9aKsGrT\n\n**Commands**\n\n- !b enroll - Allows you to enroll/unenroll in transparency broadcasts. Banshee will DM you when someone new is banned, when there are changes to the super user list, and more.- !b help - View information about Banshee.\n- !b refresh - For server owners to add all existing users from Banshee's ban list to the server bans.\n- !b supers - View the list of current super users.\n💖")
+		let iscb = function(isSuper) {
+			if(isSuper) {
+
+				message.channel.send("**Super User Commands**\n\n- !b ban :user: :reason: - Accepts @ or user ID. This will toggle a ban of a user, which will propagate to all servers Banshee is in. Reasons will be added to server ban reasons. Bans will be broadcasted to enrolled users.\n- !b broadcast :message: - Have Banshee broadcast a message to all enrolled users.\n- !b filter :word: - Add a word to a global filter. Typically for server join links of known spammers.\n- !b filterlist - List all filtered words. Be careful where you use this command as it may be spammy.\n- !b super :user: - Toggle's super user status on user. This sends a broadcast for transparency.\n\n")
+
+			}
+		}
+
+		is.isSuper(message.author, iscb)
 	},
 };
