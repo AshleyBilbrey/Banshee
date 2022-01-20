@@ -5,7 +5,7 @@ module.exports = {
 	name: 'help',
 	description: 'help',
 	execute(message, args, client) {
-		message.channel.send("__**Banshee**__\n\nBanshee will ban known spammers for you automatically!. For more bot information, how to add the bot to your own server, reporting a spammer, or help, please join this server. https://discord.gg/b8h9aKsGrT\n\n**Commands**\n\n- !b enroll - Allows you to enroll/unenroll in transparency broadcasts. Banshee will DM you when someone new is banned, when there are changes to the super user list, and more.- !b help - View information about Banshee.\n- !b refresh - For server owners to add all existing users from Banshee's ban list to the server bans.\n- !b supers - View the list of current super users.\n💖")
+		message.channel.send("__**Banshee**__\n\nBanshee will ban known spammers for you automatically!. For more bot information, how to add the bot to your own server, reporting a spammer, or help, please join this server. https://discord.gg/b8h9aKsGrT\n\n**Commands**\n\n- !b enroll - Allows you to enroll/unenroll in transparency broadcasts. Banshee will DM you when someone new is banned, when there are changes to the super user list, and more.- !b help - View information about Banshee.\n- !b refresh - For server owners to add all existing users from Banshee's ban list to the server bans.\n- !b supers - View the list of current super users.\n- !b userinfo :user: - View current info on a user, such as if they are banned or a super user.\n💖")
 		let iscb = function(isSuper) {
 			if(isSuper) {
 

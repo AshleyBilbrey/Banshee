@@ -31,6 +31,7 @@ The first time you add the bot to the server, it's a good idea to use !b refresh
 - !b help - View information about Banshee.
 - !b refresh - For server owners to add all existing users from Banshee's ban list to the server bans.
 - !b supers - View the list of current super users.
+- !b userinfo :user: - View current info on a user, such as if they are banned or a super user.
 
 Only for super users:
 
