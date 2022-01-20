@@ -11,7 +11,10 @@ module.exports = {
                 result.forEach(document => {
                     if(err) throw err;
                     client.users.fetch(document.userid).then((user) => {
-                        user.send(msg);
+                        user.send(msg).catch((err) => {
+                            console.log(err)
+                            console.log("Unable to send broadcast to user " + document.userid)
+                        });
                     });
                 })
             })
