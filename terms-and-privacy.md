@@ -40,3 +40,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND EXPRESS OR IMPLIE
 - Copies of chat messages the service deems nessecary to delete similar messages in the future.
 - Descriptions of user behavior created by the service.
 
+### Removal of Data
+
+Contact us on our Discord server to request removal of data.
+ https://discord.gg/b8h9aKsGrT
