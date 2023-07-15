@@ -1,7 +1,8 @@
 {
   "name": "banshee",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A Discord bot that will automatically ban known spammers from servers.",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "node ./index.js"
@@ -17,8 +18,12 @@
   },
   "homepage": "https://github.com/AshleyBilbrey/Banshee#readme",
   "dependencies": {
-    "discord.js": "^12.5.3",
-    "dotenv": "^10.0.0",
-    "mongodb": "^3.7.0"
+    "@discordjs/core": "^0.6.0",
+    "@discordjs/ws": "^0.8.3",
+    "dotenv": "^16.3.1",
+    "mongodb": "^5.7.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.45.0"
   }
 }
