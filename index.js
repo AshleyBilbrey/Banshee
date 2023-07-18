@@ -1,7 +1,10 @@
+import { readdirSync } from 'fs';
+import path from 'path'
+import 'dotenv/config'
 import { REST } from '@discordjs/rest';
 import { WebSocketManager } from '@discordjs/ws';
 import { GatewayDispatchEvents, GatewayIntentBits, InteractionType, MessageFlags, Client } from '@discordjs/core';
-import 'dotenv/config'
+import { Collection } from '@discordjs/collection'
 
 const token = process.env.BOT_TOKEN;
 
@@ -15,14 +18,38 @@ const gateway = new WebSocketManager({
 
 const client = new Client({ rest, gateway });
 
-client.on(GatewayDispatchEvents.InteractionCreate, async ({ data: interaction, api }) => {
-    if (interaction.type !== InteractionType.ApplicationCommand || interaction.data.name !== 'ping') {
-        return;
-    }
+client.commands = new Collection();
 
-    await api.interactions.reply(interaction.id, interaction.token, { content: 'Pong!', flags: MessageFlags.Ephemeral });
+const __dirname = String(import.meta.url).slice(0, -("index.js".length)).slice("file:".length);
+console.log(__dirname);
+
+const commandPath = path.join(__dirname, "commands")
+const commandFiles = readdirSync(commandPath).filter(fileName => fileName.endsWith(".js"));
+
+for (const file of commandFiles) {
+    const filePath = path.join(commandPath, file);
+    let command = await (import(filePath));
+
+    if ("data" in command && "execute" in command) {
+        client.commands.set(command.data.name, command)
+    } else {
+        console.log(command);
+        console.log("WARNING: Command %s incorrectly formatted.", file);
+    }
+}
+
+client.on(GatewayDispatchEvents.InteractionCreate, async ({ data: interaction, api }) => {
+    console.log("LOG: %s (%s) ran command %s", interaction.member.user.username, interaction.member.user.id, interaction.data.name);
+    let currentCommand = client.commands.get(interaction.data.name);
+    if (InteractionType.ApplicationCommand && currentCommand) {
+        currentCommand.execute(interaction, api);
+    } else {
+        api.interactions.reply(interaction.id, interaction.token, { content: "Hmm, for some reason I don't know what to do with this command. Please contact a dev.", flags: MessageFlags.Ephemeral });
+    }
 });
 
-client.once(GatewayDispatchEvents.Ready, () => console.log('Ready!'));
+client.once(GatewayDispatchEvents.Ready, () => {
+    console.log('Ready!');
+});
 
 gateway.connect();
