@@ -5,13 +5,14 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "node ./index.js"
+    "test": "node .",
+    "dev": "nodemon ."
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AshleyBilbrey/Banshee.git"
   },
-  "author": "",
+  "author": "Ashley Bilbrey",
   "license": "UNLICENSED",
   "bugs": {
     "url": "https://github.com/AshleyBilbrey/Banshee/issues"
@@ -20,11 +21,13 @@
   "dependencies": {
     "@discordjs/builders": "^1.6.3",
     "@discordjs/collection": "^1.5.1",
-    "@discordjs/core": "^0.6.0",
-    "@discordjs/ws": "^0.8.3",
-    "dotenv": "^16.3.1"
+    "@discordjs/core": "^1.0.1",
+    "@discordjs/ws": "^1.0.1",
+    "dotenv": "^16.3.1",
+    "mongodb": "^5.7.0"
   },
   "devDependencies": {
-    "eslint": "^8.45.0"
+    "eslint": "^8.45.0",
+    "nodemon": "^3.0.1"
   }
 }
