@@ -1,4 +1,6 @@
 # Banshee
+**Version two is currently in development. You can view the progress in the [version-2](https://github.com/AshleyBilbrey/Banshee/tree/version-2) branch.**
+
 Banshee will ban known spammers for you automatically!  
   
 Banshee was developed to help deal with the problem of individuals mass joining Discord servers in the UC Davis community and spamming academic dishonesty or other commercial services. 
