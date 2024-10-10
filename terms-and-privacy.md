@@ -38,6 +38,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND EXPRESS OR IMPLIE
 
 - User IDs
 - Copies of chat messages the service deems nessecary to delete similar messages in the future.
+- Copies of chat messages reported by users.
 - Descriptions of user behavior created by the service.
 
 ### Removal of Data
