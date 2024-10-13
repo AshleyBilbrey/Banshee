@@ -1,41 +1,60 @@
-use poise::serenity_prelude as serenity;
+use poise::{serenity_prelude as serenity, Framework};
 
-struct Data {} // User data, which is stored and accessible in all command invocations
-type Error = Box<dyn std::error::Error + Send + Sync>;
-type Context<'a> = poise::Context<'a, Data, Error>;
+mod commands;
+mod types;
 
 /// Displays your or another user's account creation date
 #[poise::command(slash_command, prefix_command)]
 async fn age(
-    ctx: Context<'_>,
+    ctx: types::Context<'_>,
     #[description = "Selected user"] user: Option<serenity::User>,
-) -> Result<(), Error> {
-    let u = user.as_ref().unwrap_or_else(|| ctx.author());
-    let response = format!("{}'s account was created at {}", u.name, u.created_at());
+) -> Result<(), types::Error> {
+    let u: &serenity::model::prelude::User = user.as_ref().unwrap_or_else(|| ctx.author());
+    let response: String = format!("{}'s account was created at {}", u.name, u.created_at());
     ctx.say(response).await?;
     Ok(())
 }
 
+/// List of available commands
+fn get_commands() -> Vec<poise::Command<types::Data, types::Error>> {
+    vec![age(), commands::pet::pet()]
+}
+
+/// Initialize the poise framework
+async fn setup_framework(
+    ctx: &serenity::Context,
+    _ready: &serenity::Ready,
+    framework: &poise::Framework<types::Data, types::Error>,
+) -> Result<types::Data, types::Error> {
+    poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+    let current_user: serenity::CacheRef<'_, (), serenity::model::prelude::CurrentUser> =
+        ctx.cache.current_user();
+    println!("Starting Banshee... {}", &current_user.name);
+    Ok(types::Data {})
+}
+
 #[tokio::main]
 async fn main() {
-    let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
-    let intents = serenity::GatewayIntents::non_privileged();
+    let token: String = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
+    let intents: serenity::prelude::GatewayIntents = serenity::GatewayIntents::non_privileged();
 
-    let framework = poise::Framework::builder()
+    let framework: Framework<types::Data, types::Error> = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![age()],
+            commands: get_commands(),
             ..Default::default()
         })
-        .setup(|ctx, _ready, framework| {
-            Box::pin(async move {
-                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data {})
-            })
-        })
+        .setup(
+            |ctx: &serenity::Context,
+             ready: &serenity::Ready,
+             framework: &Framework<types::Data, types::Error>| {
+                Box::pin(setup_framework(ctx, ready, framework))
+            },
+        )
         .build();
 
-    let client = serenity::ClientBuilder::new(token, intents)
-        .framework(framework)
-        .await;
+    let client: Result<serenity::Client, serenity::Error> =
+        serenity::ClientBuilder::new(token, intents)
+            .framework(framework)
+            .await;
     client.unwrap().start().await.unwrap();
 }
