@@ -3,21 +3,14 @@ use poise::{serenity_prelude as serenity, Framework};
 mod commands;
 mod types;
 
-/// Displays your or another user's account creation date
-#[poise::command(slash_command, prefix_command)]
-async fn age(
-    ctx: types::Context<'_>,
-    #[description = "Selected user"] user: Option<serenity::User>,
-) -> Result<(), types::Error> {
-    let u: &serenity::model::prelude::User = user.as_ref().unwrap_or_else(|| ctx.author());
-    let response: String = format!("{}'s account was created at {}", u.name, u.created_at());
-    ctx.say(response).await?;
-    Ok(())
-}
-
 /// List of available commands
 fn get_commands() -> Vec<poise::Command<types::Data, types::Error>> {
-    vec![age(), commands::pet::pet()]
+    vec![
+        commands::age::age(),
+        commands::pet::pet(),
+        commands::help::help(),
+        commands::report::report(),
+    ]
 }
 
 /// Initialize the poise framework
@@ -29,7 +22,8 @@ async fn setup_framework(
     poise::builtins::register_globally(ctx, &framework.options().commands).await?;
     let current_user: serenity::CacheRef<'_, (), serenity::model::prelude::CurrentUser> =
         ctx.cache.current_user();
-    println!("Starting Banshee... {}", &current_user.name);
+
+    println!("Starting Banshee as {}", &current_user.tag());
     Ok(types::Data {})
 }
 

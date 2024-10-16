@@ -1,6 +1,8 @@
 use crate::types;
 
-/// BONKS you!
+/// Pet the bot...
+///
+/// Or not.
 #[poise::command(slash_command)]
 pub async fn pet(ctx: types::Context<'_>) -> Result<(), types::Error> {
     ctx.defer_ephemeral().await?;
