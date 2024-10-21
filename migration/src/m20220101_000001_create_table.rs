@@ -1,0 +1,151 @@
+use sea_orm_migration::{prelude::*, schema::*};
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                Table::create()
+                    .table(User::Table)
+                    .if_not_exists()
+                    .col(pk_auto(User::Id))
+                    .col(big_unsigned_uniq(User::Snowflake))
+                    .col(boolean(User::Banned).default(false))
+                    .col(boolean(User::Super).default(false))
+                    .col(timestamp_null(User::CreatedAt).default(Expr::current_timestamp()))
+                    .col(timestamp_null(User::UpdatedAt).default(Expr::current_timestamp()))
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_user_snowflake")
+                    .table(User::Table)
+                    .col(User::Snowflake)
+                    .unique()
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(Report::Table)
+                    .if_not_exists()
+                    .col(pk_auto(Report::Id))
+                    .col(string(Report::MessageBody))
+                    .col(string(Report::DisplayName))
+                    .col(big_unsigned(Report::AuthorSnowflake))
+                    .col(big_unsigned(Report::ReporterSnowflake))
+                    .col(small_unsigned(Report::Status).default(0))
+                    .col(timestamp_null(Report::CreatedAt).default(Expr::current_timestamp()))
+                    .col(timestamp_null(Report::UpdatedAt).default(Expr::current_timestamp()))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(Report::Table, Report::AuthorSnowflake)
+                            .to(User::Table, User::Snowflake),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(Report::Table, Report::ReporterSnowflake)
+                            .to(User::Table, User::Snowflake),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(Ban::Table)
+                    .if_not_exists()
+                    .col(pk_auto(Ban::Id))
+                    .col(big_unsigned(Ban::UserSnowflake))
+                    .col(big_unsigned_null(Ban::ReportId))
+                    .col(string_null(Ban::Reason))
+                    .col(boolean(Ban::Active).default(true))
+                    .col(timestamp_null(Ban::CreatedAt).default(Expr::current_timestamp()))
+                    .col(timestamp_null(Ban::UpdatedAt).default(Expr::current_timestamp()))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(Ban::Table, Ban::UserSnowflake)
+                            .to(User::Table, User::Snowflake),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(Ban::Table, Ban::ReportId)
+                            .to(Report::Table, Report::Id),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_user_snowflake")
+                    .table(User::Table)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(User::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(Report::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(Ban::Table).to_owned())
+            .await?;
+
+        Ok(())
+    }
+}
+
+#[derive(DeriveIden)]
+enum User {
+    Table,
+    Id,
+    Snowflake,
+    Banned,
+    Super,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum Report {
+    Table,
+    Id,
+    MessageBody,
+    DisplayName,
+    AuthorSnowflake,
+    ReporterSnowflake,
+    Status,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum Ban {
+    Table,
+    Id,
+    UserSnowflake,
+    ReportId,
+    Reason,
+    Active,
+    CreatedAt,
+    UpdatedAt,
+}
