@@ -1,2 +1,3 @@
 /target
-export.sh
+.env
+/postgres-data

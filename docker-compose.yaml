@@ -1,0 +1,35 @@
+services:
+  banshee:
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@database/banshee
+    build: .
+    networks:
+      - banshee
+    depends_on:
+      - database
+  migration:
+    build: ./migration
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@database/banshee
+    networks:
+      - banshee
+    depends_on:
+      - database
+  database:
+    command: postgres -c listen_addresses='*'
+    image: postgres
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@database/banshee
+    volumes:
+      - ${HOST_DATA_LOCATION}:/var/lib/postgresql/data
+      - ./pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf
+    ports:
+      - 5432:5432
+    networks:
+      - banshee
+networks:
+  banshee:
