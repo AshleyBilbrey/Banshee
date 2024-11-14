@@ -1,4 +1,11 @@
 pub mod age;
+pub mod ban;
 pub mod help;
 pub mod pet;
+pub mod refresh;
 pub mod report;
+pub mod supers;
+pub mod unban;
+pub mod unwhitelist;
+pub mod user;
+pub mod whitelist;

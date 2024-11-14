@@ -17,16 +17,17 @@ services:
     depends_on:
       - database
   database:
-    command: postgres -c listen_addresses='*'
+    command: postgres -c listen_addresses='*' -c config_file=/etc/postgresql.conf
     image: postgres
     restart: always
     shm_size: 128mb
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@database/banshee
+      POSTGRES_DB: banshee
     volumes:
-      - ${HOST_DATA_LOCATION}:/var/lib/postgresql/data
-      - ./pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./postgresql.conf:/etc/postgresql.conf
     ports:
       - 5432:5432
     networks:

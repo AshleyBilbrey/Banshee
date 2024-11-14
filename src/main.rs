@@ -20,8 +20,7 @@ async fn setup_framework(
     framework: &poise::Framework<types::Data, types::Error>,
 ) -> Result<types::Data, types::Error> {
     poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-    let current_user: serenity::CacheRef<'_, (), serenity::model::prelude::CurrentUser> =
-        ctx.cache.current_user();
+    let current_user: serenity::CurrentUserRef<'_> = ctx.cache.current_user();
 
     println!("Starting Banshee as {}", &current_user.tag());
     Ok(types::Data {})

@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                     .col(pk_auto(User::Id))
                     .col(big_unsigned_uniq(User::Snowflake))
                     .col(boolean(User::Banned).default(false))
-                    .col(boolean(User::Super).default(false))
+                    .col(boolean(User::SuperUser).default(false))
                     .col(timestamp_null(User::CreatedAt).default(Expr::current_timestamp()))
                     .col(timestamp_null(User::UpdatedAt).default(Expr::current_timestamp()))
                     .to_owned(),
@@ -85,6 +85,25 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_table(
+                Table::create()
+                    .table(Whitelist::Table)
+                    .if_not_exists()
+                    .col(pk_auto(Whitelist::Id))
+                    .col(big_unsigned(Whitelist::ServerSnowflake))
+                    .col(big_unsigned(Whitelist::UserSnowflake))
+                    .col(timestamp_null(Whitelist::CreatedAt).default(Expr::current_timestamp()))
+                    .col(timestamp_null(Whitelist::UpdatedAt).default(Expr::current_timestamp()))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(Whitelist::Table, Whitelist::UserSnowflake)
+                            .to(User::Table, User::Snowflake),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
     }
 
@@ -110,6 +129,10 @@ impl MigrationTrait for Migration {
             .drop_table(Table::drop().table(Ban::Table).to_owned())
             .await?;
 
+        manager
+            .drop_table(Table::drop().table(Whitelist::Table).to_owned())
+            .await?;
+
         Ok(())
     }
 }
@@ -120,7 +143,7 @@ enum User {
     Id,
     Snowflake,
     Banned,
-    Super,
+    SuperUser,
     CreatedAt,
     UpdatedAt,
 }
@@ -146,6 +169,16 @@ enum Ban {
     ReportId,
     Reason,
     Active,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum Whitelist {
+    Table,
+    Id,
+    ServerSnowflake,
+    UserSnowflake,
     CreatedAt,
     UpdatedAt,
 }
