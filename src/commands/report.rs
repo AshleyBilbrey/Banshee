@@ -8,21 +8,12 @@ pub async fn report(
     #[description = "Message to Report"] msg: serenity::Message,
 ) -> Result<(), types::Error> {
     ctx.defer_ephemeral().await?;
-    send_report_to_admins(msg).await?;
-    send_report_response().await?;
-    ctx.say("Reported message.").await?;
-    Ok(())
-}
-
-async fn send_report_to_admins(_msg: serenity::Message) -> Result<(), types::Error> {
-    save_report_to_db().await?;
-    Ok(())
-}
-
-async fn save_report_to_db() -> Result<(), types::Error> {
-    Ok(())
-}
-
-async fn send_report_response() -> Result<(), types::Error> {
+    let reporter = ctx.author().to_string();
+    let author = msg.author.to_string();
+    ctx.say(format!(
+        "Hello **{}**, you reported a message from **{}**",
+        reporter, author
+    ))
+    .await?;
     Ok(())
 }
