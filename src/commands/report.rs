@@ -1,4 +1,7 @@
-use crate::types;
+use crate::{
+    services::report_service,
+    types::{self, ReportStatus},
+};
 use poise::serenity_prelude as serenity;
 
 /// Report a message
@@ -8,12 +11,31 @@ pub async fn report(
     #[description = "Message to Report"] msg: serenity::Message,
 ) -> Result<(), types::Error> {
     ctx.defer_ephemeral().await?;
-    let reporter = ctx.author().to_string();
-    let author = msg.author.to_string();
-    ctx.say(format!(
-        "Hello **{}**, you reported a message from **{}**",
-        reporter, author
-    ))
+    let reporter = ctx.author();
+    let author = &msg.author;
+    let message = msg.content_safe(&ctx.cache());
+
+    let report_number =
+        report_service::save_report(&message, reporter.name.clone(), author.id, reporter.id)
+            .await?;
+
+    let report_embed = report_service::generate_report_embed(
+        &message,
+        author,
+        reporter,
+        report_number,
+        ReportStatus::Open,
+        serenity::Timestamp::now(),
+    )
     .await?;
+
+    ctx.send(
+        poise::CreateReply::default()
+            .content("Submitted your report!")
+            .embed(report_embed)
+            .ephemeral(true),
+    )
+    .await?;
+
     Ok(())
 }
