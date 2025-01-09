@@ -1,9 +1,11 @@
-use crate::entities;
-use crate::services::database_service;
-use crate::types;
-use crate::types::ReportStatus;
+use crate::entities::report;
+use crate::types::{Error, ReportStatus};
+use ::serenity::all::{CreateActionRow, CreateButton};
 use poise::serenity_prelude as serenity;
 use sea_orm::{ActiveModelTrait, DbErr};
+
+use super::database_service;
+use super::user_service;
 
 pub async fn save_report(
     message_body: &String,
@@ -11,8 +13,11 @@ pub async fn save_report(
     author: serenity::UserId,
     reporter: serenity::UserId,
 ) -> Result<i32, DbErr> {
+    user_service::update_user(author).await?;
+    user_service::update_user(reporter).await?;
+
     let db = database_service::establish_connection().await?;
-    let report = entities::report::ActiveModel {
+    let report = report::ActiveModel {
         message_body: sea_orm::ActiveValue::Set(message_body.to_string()),
         display_name: sea_orm::ActiveValue::Set(display_name),
         author_snowflake: sea_orm::ActiveValue::Set(author.get() as i64),
@@ -25,7 +30,7 @@ pub async fn save_report(
     Ok(report.id)
 }
 
-fn report_status_color(status: &types::ReportStatus) -> serenity::Color {
+fn report_status_color(status: &ReportStatus) -> serenity::Color {
     match status {
         ReportStatus::Open => serenity::Color::new(0x4dfffe),
         ReportStatus::Banned => serenity::Color::new(0xfe60fb),
@@ -33,7 +38,7 @@ fn report_status_color(status: &types::ReportStatus) -> serenity::Color {
     }
 }
 
-fn report_status_string(status: &types::ReportStatus) -> String {
+fn report_status_string(status: &ReportStatus) -> String {
     match status {
         ReportStatus::Open => "Open".to_string(),
         ReportStatus::Banned => "Banned".to_string(),
@@ -48,7 +53,7 @@ pub async fn generate_report_embed(
     report_number: i32,
     status: ReportStatus,
     timestamp: serenity::Timestamp,
-) -> Result<serenity::CreateEmbed, types::Error> {
+) -> Result<serenity::CreateEmbed, Error> {
     let embed = serenity::CreateEmbed::new()
         .author(
             serenity::CreateEmbedAuthor::new(format!("{} ({})", author.name, author.tag()))
@@ -71,4 +76,18 @@ pub async fn generate_report_embed(
         )
         .timestamp(timestamp);
     Ok(embed)
+}
+
+pub async fn generate_report_buttons(report_id: i32, link: String) -> Vec<CreateActionRow> {
+    let ban = CreateButton::new("Ban:".to_owned() + &report_id.to_string())
+        .label("Ban")
+        .style(serenity::ButtonStyle::Danger);
+    let dismiss = CreateButton::new("Dismiss:".to_owned() + &report_id.to_string())
+        .label("Dismiss")
+        .style(serenity::ButtonStyle::Primary);
+    let link = CreateButton::new_link(link).label("View Original");
+
+    let buttons = vec![ban, dismiss, link];
+
+    return vec![CreateActionRow::Buttons(buttons)];
 }

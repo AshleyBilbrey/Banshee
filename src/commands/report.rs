@@ -1,5 +1,5 @@
 use crate::{
-    services::report_service,
+    services::report_service::*,
     types::{self, ReportStatus},
 };
 use poise::serenity_prelude as serenity;
@@ -16,10 +16,9 @@ pub async fn report(
     let message = msg.content_safe(&ctx.cache());
 
     let report_number =
-        report_service::save_report(&message, reporter.name.clone(), author.id, reporter.id)
-            .await?;
+        save_report(&message, reporter.name.clone(), author.id, reporter.id).await?;
 
-    let report_embed = report_service::generate_report_embed(
+    let report_embed = generate_report_embed(
         &message,
         author,
         reporter,
@@ -28,6 +27,8 @@ pub async fn report(
         serenity::Timestamp::now(),
     )
     .await?;
+
+    let report_buttons = generate_report_buttons();
 
     ctx.send(
         poise::CreateReply::default()

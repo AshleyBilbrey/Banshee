@@ -16,6 +16,8 @@ services:
       - banshee
     depends_on:
       - database
+    profiles:
+      - migration
   database:
     command: postgres -c listen_addresses='*' -c config_file=/etc/postgresql.conf
     image: postgres
