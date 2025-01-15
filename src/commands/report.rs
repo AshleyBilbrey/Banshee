@@ -28,12 +28,13 @@ pub async fn report(
     )
     .await?;
 
-    let report_buttons = generate_report_buttons();
+    let report_buttons = generate_report_buttons(report_number, msg.link()).await;
 
     ctx.send(
         poise::CreateReply::default()
             .content("Submitted your report!")
             .embed(report_embed)
+            .components(report_buttons)
             .ephemeral(true),
     )
     .await?;

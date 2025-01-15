@@ -1,5 +1,11 @@
+use ::serenity::all::{
+    CacheHttp, ComponentInteraction, CreateInteractionResponse, CreateInteractionResponseFollowup,
+    CreateInteractionResponseMessage, CreateMessage, EditMessage, FullEvent, GuildChannel,
+    Interaction, MessageBuilder,
+};
 use poise::{serenity_prelude as serenity, Framework};
-use std::env;
+use std::error::Error;
+use std::{any::Any, env};
 
 mod commands;
 mod entities;
@@ -14,6 +20,33 @@ fn get_commands() -> Vec<types::Command> {
         commands::help::help(),
         commands::report::report(),
     ]
+}
+
+async fn event_handler(
+    ctx: &serenity::client::Context,
+    event: &serenity::FullEvent,
+    _framework_ctx: poise::FrameworkContext<'_, types::Data, Box<dyn Error + Send + Sync>>,
+) -> Result<(), types::Error> {
+    if let FullEvent::InteractionCreate { interaction } = event {
+        if let Interaction::Component(component_interaction) = interaction {
+            let custom_id = &component_interaction.data.custom_id;
+            component_interaction
+                .create_response(
+                    ctx,
+                    CreateInteractionResponse::Defer(CreateInteractionResponseMessage::new()),
+                )
+                .await?;
+            component_interaction
+                .create_followup(
+                    ctx,
+                    CreateInteractionResponseFollowup::new()
+                        .content(format!("You clicked {}", custom_id)),
+                )
+                .await?;
+        }
+    }
+
+    return Ok(());
 }
 
 /// Initialize the poise framework
@@ -33,6 +66,9 @@ fn create_framework() -> types::Framework {
     Framework::builder()
         .options(poise::FrameworkOptions {
             commands: get_commands(),
+            event_handler: |ctx, event, framework_ctx, _u| {
+                Box::pin(event_handler(ctx, event, framework_ctx))
+            },
             ..Default::default()
         })
         .setup(|ctx, ready, framework| Box::pin(setup_framework(ctx, ready, framework)))
