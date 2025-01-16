@@ -1,3 +1,6 @@
+use poise::CreateReply;
+use serenity::all::{CreateAttachment, CreateEmbed};
+
 use crate::types;
 
 /// Pet the bot...
@@ -6,7 +9,15 @@ use crate::types;
 #[poise::command(slash_command)]
 pub async fn pet(ctx: types::Context<'_>) -> Result<(), types::Error> {
     ctx.defer_ephemeral().await?;
-    let response: String = format!("https://tenor.com/view/chika-fujiwara-hit-cute-kawaii-anime-gif-13583613\nWhat am I to you, a cow to pet?");
-    ctx.reply(response).await?;
+    ctx.send(
+        CreateReply::default()
+            .content("What am I, some sort of animal for you to pet?")
+            .ephemeral(true)
+            .embed(
+                CreateEmbed::new()
+                    .image("https://media1.tenor.com/m/xc19_U9dSNMAAAAd/chika-fujiwara-hit.gif"),
+            ),
+    )
+    .await?;
     Ok(())
 }

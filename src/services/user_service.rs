@@ -1,4 +1,5 @@
-use crate::entities::user;
+use crate::{entities::user, types};
+use ::serenity::all::{Context, UserId};
 use poise::serenity_prelude as serenity;
 use sea_orm::{query::*, ActiveModelTrait, ActiveValue, ColumnTrait, DbErr, EntityTrait};
 
@@ -26,4 +27,34 @@ pub async fn update_user(user_id: serenity::UserId) -> Result<(), DbErr> {
     .await?;
 
     Ok(())
+}
+
+pub async fn is_super_user(user: &UserId) -> Result<bool, types::Error> {
+    let super_users = get_super_users().await?;
+
+    let is_super: bool = super_users
+        .iter()
+        .any(|current_user| user.get() == current_user.get());
+
+    return Ok(is_super);
+}
+
+async fn get_super_users() -> Result<Vec<UserId>, types::Error> {
+    let db = database_service::establish_connection().await?;
+    let users: Vec<user::Model> = user::Entity::find()
+        .filter(user::Column::SuperUser.eq(true))
+        .all(&db)
+        .await?;
+
+    let user_ids: Vec<UserId> = users
+        .into_iter()
+        .map(|user| UserId::new(user.id as u64))
+        .collect();
+
+    Ok(user_ids)
+}
+
+pub async fn is_banshee_bot(user: &UserId, ctx: &Context) -> Result<bool, types::Error> {
+    let is_banshee: bool = user.get() == ctx.cache.current_user().id.get();
+    Ok(is_banshee)
 }

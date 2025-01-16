@@ -2,6 +2,9 @@ services:
   banshee:
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
+      OWNER_ID: ${OWNER_ID}
+      ADMIN_SERVER_ID: ${ADMIN_SERVER_ID}
+      REPORT_CHANNEL_ID: ${REPORT_CHANNEL_ID}
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@database/banshee
     build: .
     networks:

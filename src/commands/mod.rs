@@ -4,6 +4,7 @@ pub mod help;
 pub mod pet;
 pub mod refresh;
 pub mod report;
+pub mod supercmd;
 pub mod supers;
 pub mod unban;
 pub mod unwhitelist;
