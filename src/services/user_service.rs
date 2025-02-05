@@ -1,7 +1,7 @@
 use crate::{entities::user, types};
 use ::serenity::all::{Context, UserId};
 use poise::serenity_prelude as serenity;
-use sea_orm::{query::*, ActiveModelTrait, ActiveValue, ColumnTrait, DbErr, EntityTrait};
+use sea_orm::{query::*, ActiveModelTrait, ActiveValue, ColumnTrait, DbErr, EntityTrait, Set};
 
 use super::database_service;
 
@@ -46,6 +46,9 @@ async fn get_super_users() -> Result<Vec<UserId>, types::Error> {
         .all(&db)
         .await?;
 
+    println!("Supers:");
+    println!("{:#?}", users);
+
     let user_ids: Vec<UserId> = users
         .into_iter()
         .map(|user| UserId::new(user.id as u64))
@@ -57,4 +60,39 @@ async fn get_super_users() -> Result<Vec<UserId>, types::Error> {
 pub async fn is_banshee_bot(user: &UserId, ctx: &Context) -> Result<bool, types::Error> {
     let is_banshee: bool = user.get() == ctx.cache.current_user().id.get();
     Ok(is_banshee)
+}
+
+pub async fn make_super(user_id: &UserId) -> Result<(), DbErr> {
+    update_user(*user_id).await?;
+
+    let db = database_service::establish_connection().await?;
+
+    let current_user = user::Entity::find()
+        .filter(user::Column::Snowflake.eq(user_id.get() as i64))
+        .one(&db)
+        .await?;
+
+    let mut user: user::ActiveModel = current_user.unwrap().into();
+    user.super_user = Set(true);
+    user.update(&db).await?;
+
+    Ok(())
+}
+
+pub async fn un_super(user_id: &UserId) -> Result<(), DbErr> {
+    update_user(*user_id).await?;
+
+    let db = database_service::establish_connection().await?;
+
+    let current_user = user::Entity::find()
+        .filter(user::Column::Snowflake.eq(user_id.get() as i64))
+        .one(&db)
+        .await?;
+
+    let mut user: user::ActiveModel = current_user.unwrap().into();
+
+    user.super_user = Set(false);
+    user.update(&db).await?;
+
+    Ok(())
 }

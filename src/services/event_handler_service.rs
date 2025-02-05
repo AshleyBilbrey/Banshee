@@ -27,7 +27,7 @@ async fn button_press(
     ctx: &serenity::client::Context,
     component_interaction: &ComponentInteraction,
 ) -> Result<(), types::Error> {
-    let custom_id = &component_interaction.data.custom_id;
+    let _custom_id = &component_interaction.data.custom_id;
     component_interaction
         .create_response(
             ctx,
@@ -39,25 +39,9 @@ async fn button_press(
         component_interaction
             .create_followup(
                 ctx,
-                CreateInteractionResponseFollowup::new().content(format!(
-                    "You can't report {} because they are a super user.",
-                    &component_interaction.user.name
-                )),
-            )
-            .await?;
-        return Ok(());
-    }
-
-    if component_interaction.user.id.get() == ctx.cache.current_user().id.get() {
-        component_interaction
-            .create_followup(
-                ctx,
                 CreateInteractionResponseFollowup::new()
-                    .content("Nice try, but you can't report me!")
-                    .add_file(CreateAttachment::url(
-                        ctx,
-                        "https://tenor.com/view/chika-fujiwara-hit-cute-kawaii-anime-gif-13583613",
-                    ).await?),
+                    .content("You must be a super user to action a report.")
+                    .ephemeral(true),
             )
             .await?;
         return Ok(());
@@ -66,7 +50,8 @@ async fn button_press(
     component_interaction
         .create_followup(
             ctx,
-            CreateInteractionResponseFollowup::new().content(format!("You clicked {}", custom_id)),
+            CreateInteractionResponseFollowup::new()
+                .content("Actioning the report, but this hasn't been implemented yet!"),
         )
         .await?;
 

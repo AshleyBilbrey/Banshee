@@ -1,10 +1,20 @@
-FROM rust:latest
+FROM lukemathwalker/cargo-chef:latest-rust-1.84.1 AS chef
+WORKDIR /banshee
 
-WORKDIR /usr/src/banshee
 
-COPY Cargo.lock Cargo.toml /usr/src/banshee/
-COPY ./src /usr/src/banshee/src
+FROM chef AS planner
+COPY Cargo.lock Cargo.toml /banshee/
+COPY ./src/ /banshee/src/
+RUN cargo chef prepare --recipe-path recipe.json
 
-RUN cargo install --path .
+FROM chef AS builder
+COPY --from=planner /banshee/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
+COPY Cargo.lock Cargo.toml /banshee/
+COPY ./src /banshee/src
+RUN cargo build --release --bin banshee
 
-ENTRYPOINT ["banshee"]
+FROM debian:bookworm-slim AS runtime
+WORKDIR /banshee
+COPY --from=builder /banshee/target/release/banshee /usr/local/bin
+ENTRYPOINT ["/usr/local/bin/banshee"]

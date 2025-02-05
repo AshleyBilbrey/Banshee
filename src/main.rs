@@ -14,6 +14,9 @@ fn get_public_commands() -> Vec<types::Command> {
         commands::pet::pet(),
         commands::help::help(),
         commands::report::report(),
+        commands::supercmd::supercmd(),
+        commands::unsuper::unsuper(),
+        commands::ban::ban(),
     ]
 }
 
@@ -37,6 +40,7 @@ fn create_framework() -> types::Framework {
             event_handler: |ctx, event, framework_ctx, _u| {
                 Box::pin(event_handler(ctx, event, framework_ctx))
             },
+            initialize_owners: true,
             ..Default::default()
         })
         .setup(|ctx, ready, framework| Box::pin(setup_framework(ctx, ready, framework)))
