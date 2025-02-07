@@ -4,7 +4,7 @@ use crate::{
 };
 use poise::{serenity_prelude as serenity, CreateReply};
 
-/// Adds a new super user.
+/// Removes a super user
 #[poise::command(slash_command, owners_only)]
 pub async fn unsuper(
     ctx: types::Context<'_>,

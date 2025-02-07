@@ -16,6 +16,7 @@ fn get_public_commands() -> Vec<types::Command> {
         commands::report::report(),
         commands::supercmd::supercmd(),
         commands::unsuper::unsuper(),
+        commands::supers::supers(),
         commands::ban::ban(),
     ]
 }

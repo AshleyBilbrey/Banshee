@@ -1,5 +1,5 @@
 use poise::CreateReply;
-use serenity::all::{CreateAttachment, CreateEmbed};
+use serenity::all::CreateEmbed;
 
 use crate::types;
 

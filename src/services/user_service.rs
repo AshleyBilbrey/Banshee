@@ -1,7 +1,10 @@
 use crate::{entities::user, types};
 use ::serenity::all::{Context, UserId};
 use poise::serenity_prelude as serenity;
-use sea_orm::{query::*, ActiveModelTrait, ActiveValue, ColumnTrait, DbErr, EntityTrait, Set};
+use sea_orm::{
+    prelude::DateTime, query::*, sqlx::types::chrono::Utc, ActiveModelTrait, ActiveValue,
+    ColumnTrait, DbErr, EntityTrait, Set,
+};
 
 use super::database_service;
 
@@ -13,7 +16,11 @@ pub async fn update_user(user_id: serenity::UserId) -> Result<(), DbErr> {
         .one(&db)
         .await?;
 
-    if let Some(_) = current_user {
+    if let Some(existing_user) = current_user {
+        let mut user: user::ActiveModel = existing_user.into();
+        user.updated_at = Set(Some(Utc::now().naive_utc()));
+        user.update(&db).await?;
+
         return Ok(());
     }
 
@@ -30,28 +37,30 @@ pub async fn update_user(user_id: serenity::UserId) -> Result<(), DbErr> {
 }
 
 pub async fn is_super_user(user: &UserId) -> Result<bool, types::Error> {
-    let super_users = get_super_users().await?;
+    let db = database_service::establish_connection().await?;
 
-    let is_super: bool = super_users
-        .iter()
-        .any(|current_user| user.get() == current_user.get());
+    let current_user = user::Entity::find()
+        .filter(user::Column::Snowflake.eq(user.get() as i64))
+        .one(&db)
+        .await?;
 
-    return Ok(is_super);
+    if let Some(model) = current_user {
+        return Ok(model.super_user);
+    }
+
+    return Ok(false);
 }
 
-async fn get_super_users() -> Result<Vec<UserId>, types::Error> {
+pub async fn get_super_users() -> Result<Vec<UserId>, types::Error> {
     let db = database_service::establish_connection().await?;
     let users: Vec<user::Model> = user::Entity::find()
         .filter(user::Column::SuperUser.eq(true))
         .all(&db)
         .await?;
 
-    println!("Supers:");
-    println!("{:#?}", users);
-
     let user_ids: Vec<UserId> = users
         .into_iter()
-        .map(|user| UserId::new(user.id as u64))
+        .map(|user| UserId::new(user.snowflake as u64))
         .collect();
 
     Ok(user_ids)

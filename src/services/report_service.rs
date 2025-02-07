@@ -1,8 +1,9 @@
 use crate::entities::report;
-use crate::types::{Error, ReportStatus};
+use crate::types::{self, Error, ReportStatus};
 use ::serenity::all::{CreateActionRow, CreateButton};
 use poise::serenity_prelude as serenity;
-use sea_orm::{ActiveModelTrait, DbErr};
+use sea_orm::sqlx::types::chrono::Utc;
+use sea_orm::{ActiveModelTrait, DbErr, EntityTrait, QueryFilter, Set};
 
 use super::database_service;
 use super::user_service;
@@ -34,7 +35,7 @@ fn report_status_color(status: &ReportStatus) -> serenity::Color {
     match status {
         ReportStatus::Open => serenity::Color::new(0x4dfffe),
         ReportStatus::Banned => serenity::Color::new(0xfe60fb),
-        ReportStatus::Rejected => serenity::Color::new(0x6c757d),
+        ReportStatus::Dismissed => serenity::Color::new(0x6c757d),
     }
 }
 
@@ -42,7 +43,7 @@ fn report_status_string(status: &ReportStatus) -> String {
     match status {
         ReportStatus::Open => "Open".to_string(),
         ReportStatus::Banned => "Banned".to_string(),
-        ReportStatus::Rejected => "Rejected".to_string(),
+        ReportStatus::Dismissed => "Dismissed".to_string(),
     }
 }
 
@@ -90,4 +91,18 @@ pub async fn generate_report_buttons(report_id: i32, link: String) -> Vec<Create
     let buttons = vec![ban, dismiss, link];
 
     return vec![CreateActionRow::Buttons(buttons)];
+}
+
+pub async fn dismiss_report_db(report_id: i32) -> Result<(), DbErr> {
+    let db = database_service::establish_connection().await?;
+
+    let current_report: Option<report::Model> =
+        report::Entity::find_by_id(report_id).one(&db).await?;
+
+    let mut report_model: report::ActiveModel = current_report.unwrap().into();
+    report_model.status = Set(ReportStatus::Dismissed as i16);
+    report_model.updated_at = Set(Some(Utc::now().naive_utc()));
+    report_model.update(&db).await?;
+
+    Ok(())
 }

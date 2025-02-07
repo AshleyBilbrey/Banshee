@@ -6,5 +6,5 @@ pub type Command = poise::Command<Data, Error>;
 pub enum ReportStatus {
     Open = 0,
     Banned = 1,
-    Rejected = 2,
+    Dismissed = 2,
 }

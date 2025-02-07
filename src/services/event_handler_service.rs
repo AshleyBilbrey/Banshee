@@ -1,13 +1,13 @@
 use ::serenity::all::{
-    ComponentInteraction, CreateAttachment, CreateInteractionResponse,
-    CreateInteractionResponseFollowup, CreateInteractionResponseMessage, FullEvent, Interaction,
+    ComponentInteraction, CreateInteractionResponse, CreateInteractionResponseFollowup,
+    CreateInteractionResponseMessage, FullEvent, Interaction,
 };
 use poise::serenity_prelude as serenity;
 use std::error::Error;
 
 use crate::types;
 
-use super::user_service::is_super_user;
+use super::{report_service::dismiss_report_db, user_service::is_super_user};
 
 pub async fn event_handler(
     ctx: &serenity::client::Context,
@@ -31,7 +31,9 @@ async fn button_press(
     component_interaction
         .create_response(
             ctx,
-            CreateInteractionResponse::Defer(CreateInteractionResponseMessage::new()),
+            CreateInteractionResponse::Defer(
+                CreateInteractionResponseMessage::new().ephemeral(true),
+            ),
         )
         .await?;
 
@@ -47,11 +49,38 @@ async fn button_press(
         return Ok(());
     }
 
+    if component_interaction.data.custom_id.starts_with("Dismiss") {
+        return button_press_dismiss(ctx, component_interaction).await;
+    }
+
     component_interaction
         .create_followup(
             ctx,
-            CreateInteractionResponseFollowup::new()
-                .content("Actioning the report, but this hasn't been implemented yet!"),
+            CreateInteractionResponseFollowup::new().content(format!(
+                "Banning the report, but this hasn't been implemented yet! {}",
+                component_interaction.data.custom_id
+            )),
+        )
+        .await?;
+
+    Ok(())
+}
+
+async fn button_press_dismiss(
+    ctx: &serenity::client::Context,
+    component_interaction: &ComponentInteraction,
+) -> Result<(), types::Error> {
+    let interaction_id_split: Vec<&str> = component_interaction.data.custom_id.split(':').collect();
+    let report_id: i32 = interaction_id_split[1].parse().unwrap();
+    dismiss_report_db(report_id).await?;
+
+    component_interaction
+        .create_followup(
+            ctx,
+            CreateInteractionResponseFollowup::new().content(format!(
+                "Dismissing the report, but this hasn't been implemented yet! {}",
+                report_id
+            )),
         )
         .await?;
 

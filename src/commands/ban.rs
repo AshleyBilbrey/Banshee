@@ -1,7 +1,7 @@
 use crate::types;
 use poise::serenity_prelude as serenity;
 
-/// Displays your or another user's account creation date
+/// Ban a user
 #[poise::command(slash_command)]
 pub async fn ban(
     ctx: types::Context<'_>,
