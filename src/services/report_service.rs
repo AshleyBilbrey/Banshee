@@ -1,9 +1,11 @@
 use crate::entities::report;
 use crate::types::{self, Error, ReportStatus};
-use ::serenity::all::{CreateActionRow, CreateButton};
+use ::serenity::all::{
+    CreateActionRow, CreateButton, CreateEmbed, EditMessage, Message, MessageBuilder,
+};
 use poise::serenity_prelude as serenity;
 use sea_orm::sqlx::types::chrono::Utc;
-use sea_orm::{ActiveModelTrait, DbErr, EntityTrait, QueryFilter, Set};
+use sea_orm::{ActiveModelTrait, DbErr, EntityTrait, Set};
 
 use super::database_service;
 use super::user_service;
@@ -93,16 +95,94 @@ pub async fn generate_report_buttons(report_id: i32, link: String) -> Vec<Create
     return vec![CreateActionRow::Buttons(buttons)];
 }
 
-pub async fn dismiss_report_db(report_id: i32) -> Result<(), DbErr> {
+pub async fn dismiss_report_db(report_id: i32) -> Result<report::Model, DbErr> {
     let db = database_service::establish_connection().await?;
 
     let current_report: Option<report::Model> =
         report::Entity::find_by_id(report_id).one(&db).await?;
 
-    let mut report_model: report::ActiveModel = current_report.unwrap().into();
+    let mut report_model: report::ActiveModel = current_report.clone().unwrap().into();
     report_model.status = Set(ReportStatus::Dismissed as i16);
     report_model.updated_at = Set(Some(Utc::now().naive_utc()));
     report_model.update(&db).await?;
 
+    Ok(current_report.unwrap())
+}
+
+pub async fn dismiss_report_chat(
+    ctx: &serenity::client::Context,
+    system_message: Box<Message>,
+    message_body: &String,
+    author: &serenity::User,
+    reporter: &serenity::User,
+    report_number: i32,
+    status: ReportStatus,
+) -> Result<(), types::Error> {
+    system_message
+        .to_owned()
+        .edit(
+            ctx,
+            EditMessage::default()
+                .embed(
+                    generate_report_embed(
+                        message_body,
+                        author,
+                        reporter,
+                        report_number,
+                        status,
+                        serenity::Timestamp::now(),
+                    )
+                    .await?,
+                )
+                .content("")
+                .components(vec![]),
+        )
+        .await?;
+    Ok(())
+}
+
+pub async fn ban_report_db(report_id: i32) -> Result<report::Model, DbErr> {
+    let db = database_service::establish_connection().await?;
+
+    let current_report: Option<report::Model> =
+        report::Entity::find_by_id(report_id).one(&db).await?;
+
+    let mut report_model: report::ActiveModel = current_report.clone().unwrap().into();
+    report_model.status = Set(ReportStatus::Banned as i16);
+    report_model.updated_at = Set(Some(Utc::now().naive_utc()));
+    report_model.update(&db).await?;
+
+    Ok(current_report.unwrap())
+}
+
+pub async fn ban_report_chat(
+    ctx: &serenity::client::Context,
+    system_message: Box<Message>,
+    message_body: &String,
+    author: &serenity::User,
+    reporter: &serenity::User,
+    report_number: i32,
+    status: ReportStatus,
+) -> Result<(), types::Error> {
+    system_message
+        .to_owned()
+        .edit(
+            ctx,
+            EditMessage::default()
+                .embed(
+                    generate_report_embed(
+                        message_body,
+                        author,
+                        reporter,
+                        report_number,
+                        status,
+                        serenity::Timestamp::now(),
+                    )
+                    .await?,
+                )
+                .content("")
+                .components(vec![]),
+        )
+        .await?;
     Ok(())
 }

@@ -2,8 +2,8 @@ use crate::{entities::user, types};
 use ::serenity::all::{Context, UserId};
 use poise::serenity_prelude as serenity;
 use sea_orm::{
-    prelude::DateTime, query::*, sqlx::types::chrono::Utc, ActiveModelTrait, ActiveValue,
-    ColumnTrait, DbErr, EntityTrait, Set,
+    query::*, sqlx::types::chrono::Utc, ActiveModelTrait, ActiveValue, ColumnTrait, DbErr,
+    EntityTrait, Set,
 };
 
 use super::database_service;
