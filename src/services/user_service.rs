@@ -105,3 +105,18 @@ pub async fn un_super(user_id: &UserId) -> Result<(), DbErr> {
 
     Ok(())
 }
+
+pub async fn is_banned(user: &UserId) -> Result<bool, DbErr> {
+    let db = database_service::establish_connection().await?;
+
+    let current_user = user::Entity::find()
+        .filter(user::Column::Snowflake.eq(user.get() as i64))
+        .one(&db)
+        .await?;
+
+    if let Some(model) = current_user {
+        return Ok(model.banned);
+    }
+
+    return Ok(false);
+}

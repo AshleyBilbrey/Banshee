@@ -5,11 +5,17 @@ use ::serenity::all::{
 use poise::serenity_prelude as serenity;
 use std::error::Error;
 
-use crate::types::{self, ReportStatus};
+use crate::{
+    commands::ban,
+    types::{self, ReportStatus},
+};
 
 use super::{
-    report_service::{ban_report_chat, ban_report_db, dismiss_report_chat, dismiss_report_db},
-    user_service::is_super_user,
+    ban_service,
+    report_service::{
+        self, ban_report_chat, ban_report_db, dismiss_report_chat, dismiss_report_db,
+    },
+    user_service::{is_banned, is_super_user},
 };
 
 pub async fn event_handler(
@@ -45,10 +51,11 @@ async fn button_press(
     }
 
     if component_interaction.data.custom_id.starts_with("Dismiss") {
-        return button_press_dismiss(ctx, component_interaction).await;
+        return button_press_dismiss(ctx, component_interaction, true).await;
     }
 
     if component_interaction.data.custom_id.starts_with("Ban") {
+        println!("debug0");
         return button_press_ban(ctx, component_interaction).await;
     }
 
@@ -68,15 +75,9 @@ async fn button_press(
 async fn button_press_dismiss(
     ctx: &serenity::client::Context,
     component_interaction: &ComponentInteraction,
+    respond: bool,
 ) -> Result<(), types::Error> {
-    component_interaction
-        .create_response(
-            ctx,
-            CreateInteractionResponse::Defer(
-                CreateInteractionResponseMessage::new().ephemeral(true),
-            ),
-        )
-        .await?;
+    component_interaction.defer(ctx).await?;
 
     let interaction_id_split: Vec<&str> = component_interaction.data.custom_id.split(':').collect();
     let report_id: i32 = interaction_id_split[1].parse().unwrap();
@@ -96,13 +97,15 @@ async fn button_press_dismiss(
     )
     .await?;
 
-    component_interaction
-        .create_followup(
-            ctx,
-            CreateInteractionResponseFollowup::new()
-                .content(format!("Dismissed report number {}.", report_id)),
-        )
-        .await?;
+    if respond {
+        component_interaction
+            .create_followup(
+                ctx,
+                CreateInteractionResponseFollowup::new()
+                    .content(format!("Dismissed report number {}.", report_id)),
+            )
+            .await?;
+    }
 
     Ok(())
 }
@@ -111,8 +114,43 @@ async fn button_press_ban(
     ctx: &serenity::client::Context,
     component_interaction: &ComponentInteraction,
 ) -> Result<(), types::Error> {
+    println!("debug1");
+    component_interaction.defer(ctx).await?;
+
     let interaction_id_split: Vec<&str> = component_interaction.data.custom_id.split(':').collect();
     let report_id: i32 = interaction_id_split[1].parse().unwrap();
+
+    let reported_user = report_service::get_reported_user(report_id).await?;
+    if is_super_user(&reported_user).await?
+        || ctx.http.get_current_user().await?.id == reported_user
+    {
+        component_interaction
+            .create_followup(
+                ctx,
+                CreateInteractionResponseFollowup::new()
+                    .ephemeral(true)
+                    .content("Oops, this user can't be banned."),
+            )
+            .await?;
+
+        return Ok(button_press_dismiss(ctx, component_interaction, false).await?);
+    }
+    println!("debug2");
+
+    if is_banned(&reported_user).await? {
+        component_interaction
+            .create_followup(
+                ctx,
+                CreateInteractionResponseFollowup::new()
+                    .ephemeral(true)
+                    .content("Oops, this user is already banned."),
+            )
+            .await?;
+
+        return Ok(button_press_dismiss(ctx, component_interaction, false).await?);
+    }
+    println!("debug3");
+
     let modal = CreateQuickModal::new("Are you sure you want to ban?")
         .timeout(std::time::Duration::from_secs(600))
         .short_field("Ban Reason");
@@ -125,12 +163,22 @@ async fn button_press_ban(
         .interaction
         .create_response(
             ctx,
-            CreateInteractionResponse::Defer(CreateInteractionResponseMessage::new()),
+            CreateInteractionResponse::Defer(
+                CreateInteractionResponseMessage::new().ephemeral(true),
+            ),
         )
         .await?;
     let ban_reason = &response.inputs[0];
+    println!("debug4");
 
     let report = ban_report_db(report_id).await?;
+    ban_service::ban(
+        ctx,
+        reported_user.to_user(ctx).await?,
+        Some(ban_reason.to_owned()),
+        Some(report_id as i64),
+    )
+    .await?;
     ban_report_chat(
         ctx,
         component_interaction.message.clone(),
@@ -145,7 +193,18 @@ async fn button_press_ban(
         ReportStatus::Banned,
     )
     .await?;
-    //Actually ban user here.
+    println!("debug5");
+
+    response
+        .interaction
+        .create_followup(
+            ctx,
+            CreateInteractionResponseFollowup::new()
+                .content(format!("Banned user on report number {}.", report_id))
+                .ephemeral(true),
+        )
+        .await?;
+    println!("debug6");
 
     Ok(())
 }

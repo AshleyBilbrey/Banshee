@@ -1,7 +1,7 @@
 use crate::entities::report;
 use crate::types::{self, Error, ReportStatus};
 use ::serenity::all::{
-    CreateActionRow, CreateButton, CreateEmbed, EditMessage, Message, MessageBuilder,
+    CreateActionRow, CreateButton, CreateEmbed, EditMessage, Message, MessageBuilder, UserId,
 };
 use poise::serenity_prelude as serenity;
 use sea_orm::sqlx::types::chrono::Utc;
@@ -185,4 +185,12 @@ pub async fn ban_report_chat(
         )
         .await?;
     Ok(())
+}
+
+pub async fn get_reported_user(report_id: i32) -> Result<UserId, DbErr> {
+    let db = database_service::establish_connection().await?;
+
+    let current_user = report::Entity::find_by_id(report_id).one(&db).await?;
+
+    Ok(UserId::new(current_user.unwrap().author_snowflake as u64))
 }
