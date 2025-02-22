@@ -1,8 +1,6 @@
 use crate::entities::report;
 use crate::types::{self, Error, ReportStatus};
-use ::serenity::all::{
-    CreateActionRow, CreateButton, CreateEmbed, EditMessage, Message, MessageBuilder, UserId,
-};
+use ::serenity::all::{CreateActionRow, CreateButton, EditMessage, Message, UserId};
 use poise::serenity_prelude as serenity;
 use sea_orm::sqlx::types::chrono::Utc;
 use sea_orm::{ActiveModelTrait, DbErr, EntityTrait, Set};

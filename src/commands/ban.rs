@@ -1,14 +1,61 @@
-use crate::types;
-use poise::serenity_prelude as serenity;
+use crate::{
+    services::{ban_service, user_service},
+    types,
+};
+use poise::{serenity_prelude as serenity, CreateReply};
 
 /// Ban a user
 #[poise::command(slash_command)]
 pub async fn ban(
     ctx: types::Context<'_>,
-    #[description = "User to ban"] user: Option<serenity::User>,
+    #[description = "User to ban"] user: serenity::User,
+    #[description = "Reason"] reason: Option<String>,
 ) -> Result<(), types::Error> {
-    let u: &serenity::model::prelude::User = user.as_ref().unwrap_or_else(|| ctx.author());
-    let response: String = format!("{}'s account was created at {}", u.name, u.created_at());
-    ctx.say(response).await?;
+    // check perms
+
+    ctx.defer_ephemeral().await?;
+
+    if user_service::is_banshee_bot(&user.id, ctx.serenity_context()).await?
+        || user_service::is_super_user(&user.id).await?
+    {
+        ctx.reply_builder(
+            CreateReply::default()
+                .ephemeral(true)
+                .content("You can't ban a super user."),
+        );
+        return Ok(());
+    }
+
+    if user_service::is_banned(&user.id).await? {
+        ctx.reply_builder(
+            CreateReply::default()
+                .ephemeral(true)
+                .content("That user is already banned."),
+        );
+        return Ok(());
+    }
+
+    let result = ban_service::ban(
+        ctx.serenity_context(),
+        user.to_owned(),
+        reason.clone(),
+        None,
+    )
+    .await?;
+    let response: String;
+    if result {
+        response = format!(
+            "{}'s account was banned{}.",
+            user.name,
+            reason
+                .as_ref()
+                .map(|r| format!(" for {}", r))
+                .unwrap_or_default()
+        );
+    } else {
+        response = "There was a problem banning that user.".to_string();
+    }
+
+    ctx.reply_builder(CreateReply::default().ephemeral(true).content(response));
     Ok(())
 }

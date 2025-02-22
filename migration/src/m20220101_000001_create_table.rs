@@ -14,6 +14,7 @@ impl MigrationTrait for Migration {
                     .col(pk_auto(User::Id))
                     .col(big_unsigned_uniq(User::Snowflake))
                     .col(boolean(User::Banned).default(false))
+                    .col(string_null(User::BanReason))
                     .col(boolean(User::SuperUser).default(false))
                     .col(timestamp_null(User::CreatedAt).default(Expr::current_timestamp()))
                     .col(timestamp_null(User::UpdatedAt).default(Expr::current_timestamp()))
@@ -62,32 +63,6 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Ban::Table)
-                    .if_not_exists()
-                    .col(pk_auto(Ban::Id))
-                    .col(big_unsigned(Ban::UserSnowflake))
-                    .col(big_unsigned_null(Ban::ReportId))
-                    .col(string_null(Ban::Reason))
-                    .col(boolean(Ban::Active).default(true))
-                    .col(timestamp_null(Ban::CreatedAt).default(Expr::current_timestamp()))
-                    .col(timestamp_null(Ban::UpdatedAt).default(Expr::current_timestamp()))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .from(Ban::Table, Ban::UserSnowflake)
-                            .to(User::Table, User::Snowflake),
-                    )
-                    .foreign_key(
-                        ForeignKey::create()
-                            .from(Ban::Table, Ban::ReportId)
-                            .to(Report::Table, Report::Id),
-                    )
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_table(
-                Table::create()
                     .table(Whitelist::Table)
                     .if_not_exists()
                     .col(pk_auto(Whitelist::Id))
@@ -126,10 +101,6 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
-            .drop_table(Table::drop().table(Ban::Table).to_owned())
-            .await?;
-
-        manager
             .drop_table(Table::drop().table(Whitelist::Table).to_owned())
             .await?;
 
@@ -143,6 +114,7 @@ enum User {
     Id,
     Snowflake,
     Banned,
+    BanReason,
     SuperUser,
     CreatedAt,
     UpdatedAt,
@@ -157,18 +129,6 @@ enum Report {
     AuthorSnowflake,
     ReporterSnowflake,
     Status,
-    CreatedAt,
-    UpdatedAt,
-}
-
-#[derive(DeriveIden)]
-enum Ban {
-    Table,
-    Id,
-    UserSnowflake,
-    ReportId,
-    Reason,
-    Active,
     CreatedAt,
     UpdatedAt,
 }

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{entities::user, types};
 use ::serenity::all::{Context, UserId};
 use poise::serenity_prelude as serenity;
@@ -8,7 +10,7 @@ use sea_orm::{
 
 use super::database_service;
 
-pub async fn update_user(user_id: serenity::UserId) -> Result<(), DbErr> {
+pub async fn update_user(user_id: &serenity::UserId) -> Result<(), DbErr> {
     let db = database_service::establish_connection().await?;
 
     let current_user: Option<user::Model> = user::Entity::find()
@@ -72,7 +74,7 @@ pub async fn is_banshee_bot(user: &UserId, ctx: &Context) -> Result<bool, types:
 }
 
 pub async fn make_super(user_id: &UserId) -> Result<(), DbErr> {
-    update_user(*user_id).await?;
+    update_user(user_id).await?;
 
     let db = database_service::establish_connection().await?;
 
@@ -89,7 +91,7 @@ pub async fn make_super(user_id: &UserId) -> Result<(), DbErr> {
 }
 
 pub async fn un_super(user_id: &UserId) -> Result<(), DbErr> {
-    update_user(*user_id).await?;
+    update_user(user_id).await?;
 
     let db = database_service::establish_connection().await?;
 
@@ -119,4 +121,46 @@ pub async fn is_banned(user: &UserId) -> Result<bool, DbErr> {
     }
 
     return Ok(false);
+}
+
+pub async fn ban(
+    ctx: &serenity::client::Context,
+    user: &UserId,
+    reason: Option<String>,
+) -> Result<bool, types::Error> {
+    let owners: HashSet<UserId> = match ctx.http.get_current_application_info().await {
+        Ok(info) => {
+            let mut owners = HashSet::new();
+            if let Some(team) = info.team {
+                owners.insert(team.owner_user_id);
+            } else if let Some(owner) = &info.owner {
+                owners.insert(owner.id);
+            }
+            owners
+        }
+        Err(why) => panic!("Could not access application info: {:?}", why),
+    };
+
+    if is_super_user(user).await?
+        || owners.contains(user)
+        || is_banshee_bot(user, ctx).await?
+        || is_banned(user).await?
+    {
+        return Ok(false);
+    }
+
+    update_user(user).await?;
+
+    let db = database_service::establish_connection().await?;
+
+    let current_user = user::Entity::find()
+        .filter(user::Column::Snowflake.eq(user.get() as i64))
+        .one(&db)
+        .await?;
+
+    let mut user_model: user::ActiveModel = current_user.unwrap().into();
+    user_model.banned = Set(true);
+    user_model.ban_reason = Set(reason);
+
+    Ok(true)
 }
