@@ -1,7 +1,4 @@
-use crate::{
-    services::{ban_service, user_service},
-    types,
-};
+use crate::{services::user_service, types};
 use poise::{serenity_prelude as serenity, CreateReply};
 
 /// Ban a user
@@ -18,30 +15,26 @@ pub async fn ban(
     if user_service::is_banshee_bot(&user.id, ctx.serenity_context()).await?
         || user_service::is_super_user(&user.id).await?
     {
-        ctx.reply_builder(
+        ctx.send(
             CreateReply::default()
                 .ephemeral(true)
                 .content("You can't ban a super user."),
-        );
+        )
+        .await?;
         return Ok(());
     }
 
     if user_service::is_banned(&user.id).await? {
-        ctx.reply_builder(
+        ctx.send(
             CreateReply::default()
                 .ephemeral(true)
                 .content("That user is already banned."),
-        );
+        )
+        .await?;
         return Ok(());
     }
 
-    let result = ban_service::ban(
-        ctx.serenity_context(),
-        user.to_owned(),
-        reason.clone(),
-        None,
-    )
-    .await?;
+    let result = user_service::ban(ctx.serenity_context(), &user.id, reason.clone()).await?;
     let response: String;
     if result {
         response = format!(
@@ -56,6 +49,7 @@ pub async fn ban(
         response = "There was a problem banning that user.".to_string();
     }
 
-    ctx.reply_builder(CreateReply::default().ephemeral(true).content(response));
+    ctx.send(CreateReply::default().ephemeral(true).content(response))
+        .await?;
     Ok(())
 }

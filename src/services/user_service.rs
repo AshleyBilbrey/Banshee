@@ -161,6 +161,25 @@ pub async fn ban(
     let mut user_model: user::ActiveModel = current_user.unwrap().into();
     user_model.banned = Set(true);
     user_model.ban_reason = Set(reason);
+    user_model.save(&db).await?;
+
+    Ok(true)
+}
+
+pub async fn unban(user: &UserId) -> Result<bool, types::Error> {
+    update_user(user).await?;
+
+    let db = database_service::establish_connection().await?;
+
+    let current_user = user::Entity::find()
+        .filter(user::Column::Snowflake.eq(user.get() as i64))
+        .one(&db)
+        .await?;
+
+    let mut user_model: user::ActiveModel = current_user.unwrap().into();
+    user_model.banned = Set(false);
+    user_model.ban_reason = Set(None);
+    user_model.save(&db).await?;
 
     Ok(true)
 }

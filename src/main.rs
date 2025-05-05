@@ -18,6 +18,8 @@ fn get_public_commands() -> Vec<types::Command> {
         commands::unsuper::unsuper(),
         commands::supers::supers(),
         commands::ban::ban(),
+        commands::unban::unban(),
+        commands::user::user(),
     ]
 }
 

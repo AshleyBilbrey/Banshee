@@ -159,7 +159,7 @@ async fn button_press_ban(
             ),
         )
         .await?;
-    let ban_reason = &response.inputs[0];
+    let _ban_reason = &response.inputs[0];
 
     let report = ban_report_db(report_id).await?;
     ban_report_chat(

@@ -10,7 +10,7 @@ pub struct Model {
     #[sea_orm(unique)]
     pub snowflake: i64,
     pub banned: bool,
-    pub ban_reason: String,
+    pub ban_reason: Option<String>,
     pub super_user: bool,
     pub created_at: Option<DateTime>,
     pub updated_at: Option<DateTime>,

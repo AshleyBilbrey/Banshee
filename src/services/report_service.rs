@@ -14,8 +14,8 @@ pub async fn save_report(
     author: serenity::UserId,
     reporter: serenity::UserId,
 ) -> Result<i32, DbErr> {
-    user_service::update_user(author).await?;
-    user_service::update_user(reporter).await?;
+    user_service::update_user(&author).await?;
+    user_service::update_user(&reporter).await?;
 
     let db = database_service::establish_connection().await?;
     let report = report::ActiveModel {
@@ -31,7 +31,7 @@ pub async fn save_report(
     Ok(report.id)
 }
 
-fn report_status_color(status: &ReportStatus) -> serenity::Color {
+pub fn report_status_color(status: &ReportStatus) -> serenity::Color {
     match status {
         ReportStatus::Open => serenity::Color::new(0x4dfffe),
         ReportStatus::Banned => serenity::Color::new(0xfe60fb),
