@@ -1,5 +1,8 @@
 use crate::{
-    services::{report_service, user_service},
+    services::{
+        report_service,
+        user_service::{self, get_ban_reason, get_update_time},
+    },
     types,
 };
 use poise::serenity_prelude as serenity;
@@ -24,11 +27,17 @@ pub async fn user(
     );
 
     if is_banned {
-        description.push_str("🚫 **Banned:** Yes\n");
+        let ban_reason = get_ban_reason(&user.id).await?;
+        description.push_str("🚫 **Banned:**\n");
+        description.push_str(ban_reason.as_deref().unwrap_or("No reason given."));
+        description.push_str("\n");
+        if let Some(update_time) = get_update_time(&user.id).await? {
+            description.push_str(&format!("<t:{}:F>\n", update_time.and_utc().timestamp()));
+        }
     }
 
     if is_super_user {
-        description.push_str("⭐ **Super User:** Yes\n");
+        description.push_str("⭐ **Super User**\n");
     }
 
     let color = if is_banned {
@@ -36,7 +45,7 @@ pub async fn user(
     } else if is_super_user {
         report_service::report_status_color(&crate::types::ReportStatus::Open)
     } else {
-        serenity::Color::default()
+        report_service::report_status_color(&crate::types::ReportStatus::Dismissed)
     };
 
     let embed = serenity::CreateEmbed::default()

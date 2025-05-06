@@ -1,11 +1,12 @@
 use std::collections::HashSet;
 
 use crate::{entities::user, types};
-use ::serenity::all::{Context, UserId};
+use ::serenity::all::{Context, UserId, UserPagination};
 use poise::serenity_prelude as serenity;
 use sea_orm::{
-    query::*, sqlx::types::chrono::Utc, ActiveModelTrait, ActiveValue, ColumnTrait, DbErr,
-    EntityTrait, Set,
+    query::*,
+    sqlx::types::chrono::{self, Utc},
+    ActiveModelTrait, ActiveValue, ColumnTrait, DbErr, EntityTrait, Set,
 };
 
 use super::database_service;
@@ -180,6 +181,67 @@ pub async fn unban(user: &UserId) -> Result<bool, types::Error> {
     user_model.banned = Set(false);
     user_model.ban_reason = Set(None);
     user_model.save(&db).await?;
+
+    Ok(true)
+}
+
+pub async fn get_ban_reason(user: &UserId) -> Result<Option<String>, types::Error> {
+    let db = database_service::establish_connection().await?;
+
+    let current_user = user::Entity::find()
+        .filter(user::Column::Snowflake.eq(user.get() as i64))
+        .one(&db)
+        .await?;
+
+    if let Some(model) = current_user {
+        return Ok(model.ban_reason);
+    }
+
+    return Ok(None);
+}
+
+pub async fn get_update_time(user: &UserId) -> Result<Option<chrono::NaiveDateTime>, types::Error> {
+    let db = database_service::establish_connection().await?;
+
+    let current_user = user::Entity::find()
+        .filter(user::Column::Snowflake.eq(user.get() as i64))
+        .one(&db)
+        .await?;
+
+    if let Some(model) = current_user {
+        return Ok(model.updated_at);
+    }
+
+    return Ok(None);
+}
+
+pub async fn kick_user(
+    ctx: &serenity::client::Context,
+    server_id: &serenity::GuildId,
+    user: &UserId,
+) -> Result<bool, types::Error> {
+    let owners: HashSet<UserId> = match ctx.http.get_current_application_info().await {
+        Ok(info) => {
+            let mut owners = HashSet::new();
+            if let Some(team) = info.team {
+                owners.insert(team.owner_user_id);
+            } else if let Some(owner) = &info.owner {
+                owners.insert(owner.id);
+            }
+            owners
+        }
+        Err(why) => panic!("Could not access application info: {:?}", why),
+    };
+
+    if is_super_user(user).await?
+        || owners.contains(user)
+        || is_banshee_bot(user, ctx).await?
+        || is_banned(user).await?
+    {
+        return Ok(false);
+    }
+
+    //server_id.get_ban https://github.com/serenity-rs/serenity/issues/3341
 
     Ok(true)
 }
