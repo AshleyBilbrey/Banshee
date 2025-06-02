@@ -1,12 +1,15 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, thread::sleep, time::Duration};
 
-use crate::{entities::user, types};
-use ::serenity::all::{Context, UserId, UserPagination};
+use crate::{
+    entities::{user, whitelist},
+    types,
+};
+use ::serenity::all::{Context, CreateMessage, GuildId, GuildPagination, UserId};
 use poise::serenity_prelude as serenity;
 use sea_orm::{
     query::*,
     sqlx::types::chrono::{self, Utc},
-    ActiveModelTrait, ActiveValue, ColumnTrait, DbErr, EntityTrait, Set,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DbErr, DeleteResult, EntityTrait, ModelTrait, Set,
 };
 
 use super::database_service;
@@ -161,8 +164,35 @@ pub async fn ban(
 
     let mut user_model: user::ActiveModel = current_user.unwrap().into();
     user_model.banned = Set(true);
-    user_model.ban_reason = Set(reason);
+    user_model.ban_reason = Set(reason.clone());
     user_model.save(&db).await?;
+
+    let private_channel = user.create_dm_channel(ctx).await?;
+    private_channel.send_message(ctx, CreateMessage::new().content(format!("You've been removed from Banshee protected servers for **{}**. If you think this is a mistake, contact us at https://discord.gg/b8h9aKsGrT", reason.unwrap_or("Not Specified".to_string())))).await?;
+
+    let mut guild_count = 200;
+    let mut target = GuildId::new(0);
+    while guild_count == 200 {
+        let guilds = ctx
+            .http
+            .get_guilds(Some(GuildPagination::After(target)), Some(200))
+            .await?;
+        guild_count = guilds.len();
+        for g in guilds.iter() {
+            target = g.id;
+            match kick_user(ctx, &g.id, user).await {
+                Ok(_) => {}
+                Err(err) => {
+                    eprintln!(
+                        "Failed to kick user {} from guild {}: {:?}",
+                        user.get(),
+                        g.id,
+                        err
+                    );
+                }
+            };
+        }
+    }
 
     Ok(true)
 }
@@ -241,7 +271,78 @@ pub async fn kick_user(
         return Ok(false);
     }
 
-    //server_id.get_ban https://github.com/serenity-rs/serenity/issues/3341
+    match server_id.member(ctx, user).await {
+        Ok(_member) => {} // Member is in the server, continue
+        Err(serenity::Error::Http(_)) => return Ok(false),
+        Err(_) => return Ok(false),
+    }
+
+    match server_id.ban(ctx, user, 4).await {
+        Ok(()) => {}
+        Err(_err) => return Ok(false),
+    }
+
+    sleep(Duration::from_secs(2));
+
+    match server_id.unban(ctx, user).await {
+        Ok(()) => {}
+        Err(_err) => return Ok(false),
+    }
+
+    Ok(true)
+}
+
+pub async fn is_whitelisted(user_id: &UserId, server_id: &GuildId) -> Result<bool, DbErr> {
+    let db = database_service::establish_connection().await?;
+
+    let current_whitelist = whitelist::Entity::find()
+        .filter(whitelist::Column::ServerSnowflake.eq(server_id.get() as i64))
+        .filter(whitelist::Column::UserSnowflake.eq(user_id.get() as i64))
+        .one(&db)
+        .await?;
+
+    if let Some(_) = current_whitelist {
+        return Ok(true);
+    }
+
+    return Ok(false);
+}
+
+pub async fn whitelist_user(
+    server_id: &serenity::GuildId,
+    user_id: &UserId,
+) -> Result<bool, types::Error> {
+    update_user(user_id).await?;
+
+    let db = database_service::establish_connection().await?;
+
+    whitelist::ActiveModel {
+        server_snowflake: ActiveValue::Set(server_id.get() as i64),
+        user_snowflake: ActiveValue::Set(user_id.get() as i64),
+        ..Default::default()
+    }
+    .insert(&db)
+    .await?;
+
+    Ok(true)
+}
+
+pub async fn unwhitelist_user(
+    server_id: &serenity::GuildId,
+    user_id: &UserId,
+) -> Result<bool, types::Error> {
+    update_user(user_id).await?;
+
+    let db = database_service::establish_connection().await?;
+
+    let current_whitelist = whitelist::Entity::find()
+        .filter(whitelist::Column::ServerSnowflake.eq(server_id.get() as i64))
+        .filter(whitelist::Column::UserSnowflake.eq(user_id.get() as i64))
+        .one(&db)
+        .await?;
+
+    let current_whitelist: whitelist::Model = current_whitelist.unwrap();
+    current_whitelist.delete(&db).await?;
 
     Ok(true)
 }

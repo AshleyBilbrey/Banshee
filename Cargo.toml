@@ -8,5 +8,8 @@ edition = "2021"
 [dependencies]
 poise = "0.6.1"
 sea-orm = { version = "1.1.0", features = ["sqlx-postgres", "runtime-tokio", "macros"] }
-serenity = "0.12.2"
+serenity = "0.12.3"
 tokio = { version = "1.40.0", features = ["rt-multi-thread", "macros"] }
+
+[patch.crates-io]
+serenity = { git = 'https://github.com/serenity-rs/serenity.git' }

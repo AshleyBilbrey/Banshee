@@ -1,6 +1,7 @@
 use ::serenity::all::{
     ComponentInteraction, CreateInteractionResponse, CreateInteractionResponseFollowup,
-    CreateInteractionResponseMessage, CreateQuickModal, FullEvent, Interaction, UserId,
+    CreateInteractionResponseMessage, CreateMessage, CreateQuickModal, FullEvent, Interaction,
+    UserId,
 };
 use poise::serenity_prelude as serenity;
 use std::error::Error;
@@ -11,7 +12,7 @@ use super::{
     report_service::{
         self, ban_report_chat, ban_report_db, dismiss_report_chat, dismiss_report_db,
     },
-    user_service::{is_banned, is_super_user},
+    user_service::{self, get_ban_reason, is_banned, is_super_user, kick_user},
 };
 
 pub async fn event_handler(
@@ -23,6 +24,10 @@ pub async fn event_handler(
         if let Interaction::Component(component_interaction) = interaction {
             button_press(ctx, component_interaction).await?;
         }
+    }
+
+    if let FullEvent::GuildMemberAddition { new_member } = event {
+        let _ = handle_new_member(ctx, &new_member.user.id, &new_member.guild_id).await;
     }
 
     Ok(())
@@ -194,6 +199,21 @@ async fn button_press_ban(
                 .ephemeral(true),
         )
         .await?;
+
+    Ok(())
+}
+
+async fn handle_new_member(
+    ctx: &serenity::client::Context,
+    new_member: &serenity::UserId,
+    guild_id: &serenity::GuildId,
+) -> Result<(), types::Error> {
+    if user_service::is_banned(new_member).await? {
+        let private_channel = new_member.create_dm_channel(ctx).await?;
+        let _ = private_channel.send_message(ctx, CreateMessage::new().content(format!("You've been removed from Banshee protected servers for **{}**. If you think this is a mistake, contact us at https://discord.gg/b8h9aKsGrT", get_ban_reason(new_member).await?.unwrap_or("No Reason".to_string())))).await;
+
+        let _ = kick_user(ctx, guild_id, new_member).await;
+    }
 
     Ok(())
 }
