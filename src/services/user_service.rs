@@ -1,15 +1,14 @@
 use std::{collections::HashSet, thread::sleep, time::Duration};
 
 use crate::{
-    entities::{user, whitelist},
-    types,
+    entities::{user, whitelist}, services::config_service::get_report_server, types
 };
 use ::serenity::all::{Context, CreateMessage, GuildId, GuildPagination, UserId};
 use poise::serenity_prelude as serenity;
 use sea_orm::{
     query::*,
     sqlx::types::chrono::{self, Utc},
-    ActiveModelTrait, ActiveValue, ColumnTrait, DbErr, DeleteResult, EntityTrait, ModelTrait, Set,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DbErr, EntityTrait, ModelTrait, Set,
 };
 
 use super::database_service;
@@ -34,6 +33,7 @@ pub async fn update_user(user_id: &serenity::UserId) -> Result<(), DbErr> {
         snowflake: ActiveValue::Set(user_id.get() as i64),
         banned: ActiveValue::Set(false),
         super_user: ActiveValue::Set(false),
+        ban_reason: ActiveValue::Set("".to_string()),
         ..Default::default()
     }
     .insert(&db)
@@ -164,14 +164,13 @@ pub async fn ban(
 
     let mut user_model: user::ActiveModel = current_user.unwrap().into();
     user_model.banned = Set(true);
-    user_model.ban_reason = Set(reason.clone());
+    user_model.ban_reason = Set(reason.clone().unwrap_or("No reason provided.".to_string()));
     user_model.save(&db).await?;
 
-    let private_channel = user.create_dm_channel(ctx).await?;
-    private_channel.send_message(ctx, CreateMessage::new().content(format!("You've been removed from Banshee protected servers for **{}**. If you think this is a mistake, contact us at https://discord.gg/b8h9aKsGrT", reason.unwrap_or("Not Specified".to_string())))).await?;
+    let mut ban_list = "".to_string();
 
     let mut guild_count = 200;
-    let mut target = GuildId::new(0);
+    let mut target = GuildId::new(1);
     while guild_count == 200 {
         let guilds = ctx
             .http
@@ -180,6 +179,9 @@ pub async fn ban(
         guild_count = guilds.len();
         for g in guilds.iter() {
             target = g.id;
+            ban_list.push_str("- ");
+            ban_list.push_str(&target.to_partial_guild(ctx).await?.name);
+            ban_list.push_str("\n");
             match kick_user(ctx, &g.id, user).await {
                 Ok(_) => {}
                 Err(err) => {
@@ -193,6 +195,9 @@ pub async fn ban(
             };
         }
     }
+
+    let private_channel = user.create_dm_channel(ctx).await?;
+    private_channel.send_message(ctx, CreateMessage::new().content(format!("You've been removed from the following Banshee protected servers for **{}**\n{}\n If you think this is a mistake, contact us at https://discord.gg/b8h9aKsGrT", reason.unwrap_or("Not Specified".to_string()), ban_list))).await?;
 
     Ok(true)
 }
@@ -209,13 +214,13 @@ pub async fn unban(user: &UserId) -> Result<bool, types::Error> {
 
     let mut user_model: user::ActiveModel = current_user.unwrap().into();
     user_model.banned = Set(false);
-    user_model.ban_reason = Set(None);
+    user_model.ban_reason = Set("".to_string());
     user_model.save(&db).await?;
 
     Ok(true)
 }
 
-pub async fn get_ban_reason(user: &UserId) -> Result<Option<String>, types::Error> {
+pub async fn get_ban_reason(user: &UserId) -> Result<String, types::Error> {
     let db = database_service::establish_connection().await?;
 
     let current_user = user::Entity::find()
@@ -227,7 +232,7 @@ pub async fn get_ban_reason(user: &UserId) -> Result<Option<String>, types::Erro
         return Ok(model.ban_reason);
     }
 
-    return Ok(None);
+    return Ok("".to_string());
 }
 
 pub async fn get_update_time(user: &UserId) -> Result<Option<chrono::NaiveDateTime>, types::Error> {
@@ -266,8 +271,15 @@ pub async fn kick_user(
     if is_super_user(user).await?
         || owners.contains(user)
         || is_banshee_bot(user, ctx).await?
-        || is_banned(user).await?
     {
+        return Ok(false);
+    }
+
+    if is_whitelisted(*user, *server_id).await? {
+        return Ok(false);
+    }
+
+    if &get_report_server().await == server_id {
         return Ok(false);
     }
 
@@ -279,12 +291,12 @@ pub async fn kick_user(
 
     match server_id.ban(ctx, user, 4).await {
         Ok(()) => {}
-        Err(_err) => return Ok(false),
+        Err(_err) => {println!("Error banning {:?}", _err); return Ok(false)},
     }
 
-    sleep(Duration::from_secs(2));
+    sleep(Duration::from_millis(100));
 
-    match server_id.unban(ctx, user).await {
+    match server_id.unban(ctx, user).await { 
         Ok(()) => {}
         Err(_err) => return Ok(false),
     }
@@ -292,7 +304,7 @@ pub async fn kick_user(
     Ok(true)
 }
 
-pub async fn is_whitelisted(user_id: &UserId, server_id: &GuildId) -> Result<bool, DbErr> {
+pub async fn is_whitelisted(user_id: UserId, server_id: GuildId) -> Result<bool, DbErr> {
     let db = database_service::establish_connection().await?;
 
     let current_whitelist = whitelist::Entity::find()
@@ -301,11 +313,7 @@ pub async fn is_whitelisted(user_id: &UserId, server_id: &GuildId) -> Result<boo
         .one(&db)
         .await?;
 
-    if let Some(_) = current_whitelist {
-        return Ok(true);
-    }
-
-    return Ok(false);
+    Ok(current_whitelist.is_some())
 }
 
 pub async fn whitelist_user(

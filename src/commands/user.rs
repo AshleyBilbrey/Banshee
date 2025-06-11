@@ -29,7 +29,7 @@ pub async fn user(
     if is_banned {
         let ban_reason = get_ban_reason(&user.id).await?;
         description.push_str("🚫 **Banned:**\n");
-        description.push_str(ban_reason.as_deref().unwrap_or("No reason given."));
+        description.push_str(&ban_reason);
         description.push_str("\n");
         if let Some(update_time) = get_update_time(&user.id).await? {
             description.push_str(&format!("<t:{}:F>\n", update_time.and_utc().timestamp()));

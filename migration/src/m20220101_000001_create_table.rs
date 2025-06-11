@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                     .col(pk_auto(User::Id))
                     .col(big_unsigned_uniq(User::Snowflake))
                     .col(boolean(User::Banned).default(false))
-                    .col(string_null(User::BanReason))
+                    .col(string(User::BanReason))
                     .col(boolean(User::SuperUser).default(false))
                     .col(timestamp_null(User::CreatedAt).default(Expr::current_timestamp()))
                     .col(timestamp_null(User::UpdatedAt).default(Expr::current_timestamp()))

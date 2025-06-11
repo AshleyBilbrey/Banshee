@@ -56,7 +56,6 @@ async fn button_press(
     }
 
     if component_interaction.data.custom_id.starts_with("Ban") {
-        println!("debug0");
         return button_press_ban(ctx, component_interaction).await;
     }
 
@@ -208,9 +207,9 @@ async fn handle_new_member(
     new_member: &serenity::UserId,
     guild_id: &serenity::GuildId,
 ) -> Result<(), types::Error> {
-    if user_service::is_banned(new_member).await? {
+    if user_service::is_banned(new_member).await? && !user_service::is_whitelisted(*new_member, *guild_id).await? {
         let private_channel = new_member.create_dm_channel(ctx).await?;
-        let _ = private_channel.send_message(ctx, CreateMessage::new().content(format!("You've been removed from Banshee protected servers for **{}**. If you think this is a mistake, contact us at https://discord.gg/b8h9aKsGrT", get_ban_reason(new_member).await?.unwrap_or("No Reason".to_string())))).await;
+        let _ = private_channel.send_message(ctx, CreateMessage::new().content(format!("You've been removed from **{}**, a Banshee protected server, for **{}**. If you think this is a mistake, contact us at https://discord.gg/b8h9aKsGrT", guild_id.to_partial_guild(ctx).await?.name, get_ban_reason(new_member).await?))).await;
 
         let _ = kick_user(ctx, guild_id, new_member).await;
     }

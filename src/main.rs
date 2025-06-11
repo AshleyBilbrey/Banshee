@@ -20,6 +20,8 @@ fn get_public_commands() -> Vec<types::Command> {
         commands::ban::ban(),
         commands::unban::unban(),
         commands::user::user(),
+        commands::whitelist::whitelist(),
+        commands::unwhitelist::unwhitelist()
     ]
 }
 
@@ -66,7 +68,7 @@ async fn create_client(
 async fn main() {
     // Load environment variables and setup intents
     let token = env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
-    let intents = serenity::GatewayIntents::non_privileged();
+    let intents = serenity::GatewayIntents::GUILD_MEMBERS;
 
     // Initialize framework and client
     let framework = create_framework();
