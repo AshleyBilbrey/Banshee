@@ -6,7 +6,10 @@ use ::serenity::all::{
 use poise::serenity_prelude as serenity;
 use std::error::Error;
 
-use crate::types::{self, ReportStatus};
+use crate::{
+    services::user_service::ban,
+    types::{self, ReportStatus},
+};
 
 use super::{
     report_service::{
@@ -37,15 +40,15 @@ async fn button_press(
     ctx: &serenity::client::Context,
     component_interaction: &ComponentInteraction,
 ) -> Result<(), types::Error> {
-    let _custom_id = &component_interaction.data.custom_id;
-
     if !is_super_user(&component_interaction.user.id).await? {
         component_interaction
-            .create_followup(
+            .create_response(
                 ctx,
-                CreateInteractionResponseFollowup::new()
-                    .content("You must be a super user to action a report.")
-                    .ephemeral(true),
+                CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::new()
+                        .content("You must be a super user to action a report.")
+                        .ephemeral(true),
+                ),
             )
             .await?;
         return Ok(());
@@ -163,8 +166,7 @@ async fn button_press_ban(
             ),
         )
         .await?;
-    let _ban_reason = &response.inputs[0];
-
+    let ban_reason = &response.inputs[0];
     let report = ban_report_db(report_id).await?;
     ban_report_chat(
         ctx,
@@ -199,6 +201,8 @@ async fn button_press_ban(
         )
         .await?;
 
+    ban(ctx, &reported_user, Some(ban_reason.clone())).await?;
+
     Ok(())
 }
 
@@ -207,7 +211,9 @@ async fn handle_new_member(
     new_member: &serenity::UserId,
     guild_id: &serenity::GuildId,
 ) -> Result<(), types::Error> {
-    if user_service::is_banned(new_member).await? && !user_service::is_whitelisted(*new_member, *guild_id).await? {
+    if user_service::is_banned(new_member).await?
+        && !user_service::is_whitelisted(*new_member, *guild_id).await?
+    {
         let private_channel = new_member.create_dm_channel(ctx).await?;
         let _ = private_channel.send_message(ctx, CreateMessage::new().content(format!("You've been removed from **{}**, a Banshee protected server, for **{}**. If you think this is a mistake, contact us at https://discord.gg/b8h9aKsGrT", guild_id.to_partial_guild(ctx).await?.name, get_ban_reason(new_member).await?))).await;
 

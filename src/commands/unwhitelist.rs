@@ -1,7 +1,13 @@
-use crate::{services::user_service::{get_ban_reason, is_banned, is_whitelisted, kick_user, unwhitelist_user}, types};
+use crate::{
+    services::user_service::{
+        get_ban_reason, is_banned, is_whitelisted, kick_user, unwhitelist_user,
+    },
+    types,
+};
+use ::serenity::all::CreateMessage;
 use poise::{serenity_prelude as serenity, CreateReply};
-use ::serenity::{all::CreateMessage, model::guild};
 
+// Remove user from a whitelist, allowing them to be banned on your server by Banshee. (Server admin only)
 #[poise::command(slash_command)]
 pub async fn unwhitelist(
     ctx: types::Context<'_>,
@@ -15,7 +21,8 @@ pub async fn unwhitelist(
             CreateReply::default()
                 .content("You do not have permission to whitelist users on this server.")
                 .ephemeral(true),
-        ).await?;
+        )
+        .await?;
         return Ok(());
     }
 
@@ -27,7 +34,8 @@ pub async fn unwhitelist(
             CreateReply::default()
                 .content("That user is not whitelisted on this server.")
                 .ephemeral(true),
-        ).await?;
+        )
+        .await?;
         return Ok(());
     }
 
@@ -41,9 +49,13 @@ pub async fn unwhitelist(
 
     ctx.send(
         CreateReply::default()
-            .content(format!("Removed **{}** from whitelist.", user.display_name()))
+            .content(format!(
+                "Removed **{}** from whitelist.",
+                user.display_name()
+            ))
             .ephemeral(true),
-    ).await?;
+    )
+    .await?;
 
     Ok(())
 }

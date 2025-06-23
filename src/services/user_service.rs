@@ -1,7 +1,9 @@
 use std::{collections::HashSet, thread::sleep, time::Duration};
 
 use crate::{
-    entities::{user, whitelist}, services::config_service::get_report_server, types
+    entities::{user, whitelist},
+    services::config_service::get_report_server,
+    types,
 };
 use ::serenity::all::{Context, CreateMessage, GuildId, GuildPagination, UserId};
 use poise::serenity_prelude as serenity;
@@ -268,10 +270,7 @@ pub async fn kick_user(
         Err(why) => panic!("Could not access application info: {:?}", why),
     };
 
-    if is_super_user(user).await?
-        || owners.contains(user)
-        || is_banshee_bot(user, ctx).await?
-    {
+    if is_super_user(user).await? || owners.contains(user) || is_banshee_bot(user, ctx).await? {
         return Ok(false);
     }
 
@@ -291,12 +290,15 @@ pub async fn kick_user(
 
     match server_id.ban(ctx, user, 4).await {
         Ok(()) => {}
-        Err(_err) => {println!("Error banning {:?}", _err); return Ok(false)},
+        Err(_err) => {
+            println!("Error banning {:?}", _err);
+            return Ok(false);
+        }
     }
 
     sleep(Duration::from_millis(100));
 
-    match server_id.unban(ctx, user).await { 
+    match server_id.unban(ctx, user).await {
         Ok(()) => {}
         Err(_err) => return Ok(false),
     }

@@ -1,6 +1,10 @@
-use crate::{services::user_service::{is_whitelisted, whitelist_user}, types};
+use crate::{
+    services::user_service::{is_whitelisted, whitelist_user},
+    types,
+};
 use poise::{serenity_prelude as serenity, CreateReply};
 
+// Puts user on a whitelist, preventing them from being banned on your server by Banshee. (Server admin only)
 #[poise::command(slash_command)]
 pub async fn whitelist(
     ctx: types::Context<'_>,
@@ -14,18 +18,26 @@ pub async fn whitelist(
             CreateReply::default()
                 .content("You do not have permission to whitelist users on this server.")
                 .ephemeral(true),
-        ).await?;
+        )
+        .await?;
         return Ok(());
     }
 
-    let server_id = ctx.channel_id().to_channel(ctx).await?.guild().unwrap().guild_id;
+    let server_id = ctx
+        .channel_id()
+        .to_channel(ctx)
+        .await?
+        .guild()
+        .unwrap()
+        .guild_id;
     let already_whitelisted = is_whitelisted(user.id, server_id).await?;
     if already_whitelisted {
         ctx.send(
             CreateReply::default()
                 .content("That user is already whitelisted on this server.")
                 .ephemeral(true),
-        ).await?;
+        )
+        .await?;
         return Ok(());
     }
 
@@ -35,7 +47,8 @@ pub async fn whitelist(
         CreateReply::default()
             .content(format!("Whitelisted **{}**", user.display_name()))
             .ephemeral(true),
-    ).await?;
+    )
+    .await?;
 
     Ok(())
 }

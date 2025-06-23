@@ -2,6 +2,7 @@ pub mod age;
 pub mod ban;
 pub mod help;
 pub mod pet;
+pub mod register;
 pub mod report;
 pub mod supercmd;
 pub mod supers;

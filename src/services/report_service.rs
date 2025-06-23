@@ -1,6 +1,6 @@
 use crate::entities::report;
 use crate::types::{self, Error, ReportStatus};
-use ::serenity::all::{CreateActionRow, CreateButton, EditMessage, Message, UserId};
+use ::serenity::all::{CreateActionRow, CreateButton, CreateMessage, EditMessage, Message, UserId};
 use poise::serenity_prelude as serenity;
 use sea_orm::sqlx::types::chrono::Utc;
 use sea_orm::{ActiveModelTrait, DbErr, EntityTrait, Set};
@@ -116,26 +116,36 @@ pub async fn dismiss_report_chat(
     report_number: i32,
     status: ReportStatus,
 ) -> Result<(), types::Error> {
+    let report_embed = generate_report_embed(
+        message_body,
+        author,
+        reporter,
+        report_number,
+        status,
+        serenity::Timestamp::now(),
+    )
+    .await?;
+
     system_message
         .to_owned()
         .edit(
             ctx,
             EditMessage::default()
-                .embed(
-                    generate_report_embed(
-                        message_body,
-                        author,
-                        reporter,
-                        report_number,
-                        status,
-                        serenity::Timestamp::now(),
-                    )
-                    .await?,
-                )
+                .embed(report_embed.clone())
                 .content("")
                 .components(vec![]),
         )
         .await?;
+
+    let private_channel = reporter.create_dm_channel(ctx).await?;
+    private_channel
+        .send_message(
+            ctx,
+            CreateMessage::new()
+                .content("Your recent report was dismissed. Either it was declined, or the user was already banned. If you have any questions, please reach out. Even though this is an automated message, we really appreciate you taking the time to report. Thank you!").embed(report_embed),
+        )
+        .await?;
+
     Ok(())
 }
 
@@ -162,26 +172,36 @@ pub async fn ban_report_chat(
     report_number: i32,
     status: ReportStatus,
 ) -> Result<(), types::Error> {
+    let report_embed = generate_report_embed(
+        message_body,
+        author,
+        reporter,
+        report_number,
+        status,
+        serenity::Timestamp::now(),
+    )
+    .await?;
+
     system_message
         .to_owned()
         .edit(
             ctx,
             EditMessage::default()
-                .embed(
-                    generate_report_embed(
-                        message_body,
-                        author,
-                        reporter,
-                        report_number,
-                        status,
-                        serenity::Timestamp::now(),
-                    )
-                    .await?,
-                )
+                .embed(report_embed.clone())
                 .content("")
                 .components(vec![]),
         )
         .await?;
+
+    let private_channel = reporter.create_dm_channel(ctx).await?;
+    private_channel
+        .send_message(
+            ctx,
+            CreateMessage::new()
+                .content("A user was recently banned from your report. Even though this is an automated message, we really appreciate you taking the time to report. Thank you!").embed(report_embed),
+        )
+        .await?;
+
     Ok(())
 }
 

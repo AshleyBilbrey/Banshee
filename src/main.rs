@@ -1,5 +1,5 @@
-use poise::{serenity_prelude as serenity, Framework};
-use services::event_handler_service::event_handler;
+use poise::{samples::register_in_guild, serenity_prelude as serenity, Framework};
+use services::{config_service::get_report_server, event_handler_service::event_handler};
 use std::env;
 
 mod commands;
@@ -10,18 +10,23 @@ mod types;
 /// List of available commands
 fn get_public_commands() -> Vec<types::Command> {
     vec![
-        commands::age::age(),
         commands::pet::pet(),
         commands::help::help(),
         commands::report::report(),
-        commands::supercmd::supercmd(),
-        commands::unsuper::unsuper(),
         commands::supers::supers(),
-        commands::ban::ban(),
-        commands::unban::unban(),
         commands::user::user(),
         commands::whitelist::whitelist(),
-        commands::unwhitelist::unwhitelist()
+        commands::unwhitelist::unwhitelist(),
+    ]
+}
+
+fn get_private_commands() -> Vec<types::Command> {
+    vec![
+        commands::register::register(),
+        commands::supercmd::supercmd(),
+        commands::unsuper::unsuper(),
+        commands::ban::ban(),
+        commands::unban::unban(),
     ]
 }
 
@@ -29,9 +34,12 @@ fn get_public_commands() -> Vec<types::Command> {
 async fn setup_framework(
     ctx: &serenity::Context,
     _ready: &serenity::Ready,
-    framework: &types::Framework,
+    _framework: &types::Framework,
 ) -> Result<types::Data, types::Error> {
-    poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+    poise::builtins::register_globally(ctx, &get_public_commands()).await?;
+
+    register_in_guild(ctx, &get_private_commands(), get_report_server().await).await?;
+
     let current_user = ctx.cache.current_user();
     println!("Starting Banshee as {}", &current_user.tag());
     Ok(types::Data {})
@@ -39,9 +47,11 @@ async fn setup_framework(
 
 /// Create the framework
 fn create_framework() -> types::Framework {
+    let mut all_commands = get_public_commands();
+    all_commands.extend(get_private_commands());
     Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: get_public_commands(),
+            commands: all_commands,
             event_handler: |ctx, event, framework_ctx, _u| {
                 Box::pin(event_handler(ctx, event, framework_ctx))
             },

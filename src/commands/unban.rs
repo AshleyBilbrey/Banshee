@@ -1,7 +1,7 @@
 use crate::{services::user_service, types};
 use poise::{serenity_prelude as serenity, CreateReply};
 
-/// Ban a user
+/// Unban a user (Super users only)
 #[poise::command(slash_command)]
 pub async fn unban(
     ctx: types::Context<'_>,

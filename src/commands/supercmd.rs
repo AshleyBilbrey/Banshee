@@ -4,7 +4,7 @@ use crate::{
 };
 use poise::{serenity_prelude as serenity, CreateReply};
 
-/// Adds a new super user.
+/// Adds a new super user. (Super users only)
 #[poise::command(slash_command, owners_only, rename = "super")]
 pub async fn supercmd(
     ctx: types::Context<'_>,
