@@ -1,17 +1,13 @@
-use std::{collections::HashSet, thread::sleep, time::Duration};
-
-use crate::{
-    entities::{user, whitelist},
-    services::config_service::get_report_server,
-    types,
-};
+use crate::{entities::user, services::config_service::get_report_server, types};
 use ::serenity::all::{Context, CreateMessage, GuildId, GuildPagination, UserId};
 use poise::serenity_prelude as serenity;
 use sea_orm::{
     query::*,
     sqlx::types::chrono::{self, Utc},
-    ActiveModelTrait, ActiveValue, ColumnTrait, DbErr, EntityTrait, ModelTrait, Set,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DbErr, EntityTrait, Set,
 };
+use std::collections::HashSet;
+use tokio::time::{sleep, Duration};
 
 use super::database_service;
 
@@ -184,17 +180,18 @@ pub async fn ban(
             ban_list.push_str("- ");
             ban_list.push_str(&target.to_partial_guild(ctx).await?.name);
             ban_list.push_str("\n");
-            match kick_user(ctx, &g.id, user).await {
+            match process_ban(ctx, &g.id, user, reason.clone()).await {
                 Ok(_) => {}
                 Err(err) => {
                     eprintln!(
-                        "Failed to kick user {} from guild {}: {:?}",
+                        "Failed to ban user {} from guild {}: {:?}",
                         user.get(),
                         g.id,
                         err
                     );
                 }
             };
+            sleep(Duration::from_millis(100)).await;
         }
     }
 
@@ -204,7 +201,7 @@ pub async fn ban(
     Ok(true)
 }
 
-pub async fn unban(user: &UserId) -> Result<bool, types::Error> {
+pub async fn unban(ctx: &serenity::client::Context, user: &UserId) -> Result<bool, types::Error> {
     update_user(user).await?;
 
     let db = database_service::establish_connection().await?;
@@ -218,6 +215,31 @@ pub async fn unban(user: &UserId) -> Result<bool, types::Error> {
     user_model.banned = Set(false);
     user_model.ban_reason = Set("".to_string());
     user_model.save(&db).await?;
+
+    let mut guild_count = 200;
+    let mut target = GuildId::new(1);
+    while guild_count == 200 {
+        let guilds = ctx
+            .http
+            .get_guilds(Some(GuildPagination::After(target)), Some(200))
+            .await?;
+        guild_count = guilds.len();
+        for g in guilds.iter() {
+            target = g.id;
+            match process_unban(ctx, &g.id, user).await {
+                Ok(_) => {}
+                Err(err) => {
+                    eprintln!(
+                        "Failed to unban user {} from guild {}: {:?}",
+                        user.get(),
+                        g.id,
+                        err
+                    );
+                }
+            };
+            sleep(Duration::from_millis(100)).await;
+        }
+    }
 
     Ok(true)
 }
@@ -252,10 +274,11 @@ pub async fn get_update_time(user: &UserId) -> Result<Option<chrono::NaiveDateTi
     return Ok(None);
 }
 
-pub async fn kick_user(
+pub async fn process_ban(
     ctx: &serenity::client::Context,
     server_id: &serenity::GuildId,
     user: &UserId,
+    reason: Option<String>,
 ) -> Result<bool, types::Error> {
     let owners: HashSet<UserId> = match ctx.http.get_current_application_info().await {
         Ok(info) => {
@@ -274,10 +297,6 @@ pub async fn kick_user(
         return Ok(false);
     }
 
-    if is_whitelisted(*user, *server_id).await? {
-        return Ok(false);
-    }
-
     if &get_report_server().await == server_id {
         return Ok(false);
     }
@@ -285,74 +304,55 @@ pub async fn kick_user(
     match server_id.member(ctx, user).await {
         Ok(_member) => {} // Member is in the server, continue
         Err(serenity::Error::Http(_)) => return Ok(false),
-        Err(_) => return Ok(false),
+        Err(err) => return Err(Box::new(err)),
     }
 
-    match server_id.ban(ctx, user, 4).await {
+    match server_id.get_ban(ctx, user.clone()).await {
+        Ok(Some(_ban)) => return Ok(false), // Skip, user already banned
+        Ok(None) => {}
+        Err(err) => return Err(Box::new(err)),
+    }
+
+    match server_id
+        .ban_with_reason(
+            ctx,
+            user,
+            4,
+            if reason.is_some() {
+                format!("Banned by Banshee: {}", reason.unwrap())
+            } else {
+                "Banned by Banshee".to_string()
+            },
+        )
+        .await
+    {
         Ok(()) => {}
-        Err(_err) => {
-            println!("Error banning {:?}", _err);
-            return Ok(false);
-        }
-    }
-
-    sleep(Duration::from_millis(100));
-
-    match server_id.unban(ctx, user).await {
-        Ok(()) => {}
-        Err(_err) => return Ok(false),
+        Err(err) => return Err(Box::new(err)),
     }
 
     Ok(true)
 }
 
-pub async fn is_whitelisted(user_id: UserId, server_id: GuildId) -> Result<bool, DbErr> {
-    let db = database_service::establish_connection().await?;
-
-    let current_whitelist = whitelist::Entity::find()
-        .filter(whitelist::Column::ServerSnowflake.eq(server_id.get() as i64))
-        .filter(whitelist::Column::UserSnowflake.eq(user_id.get() as i64))
-        .one(&db)
-        .await?;
-
-    Ok(current_whitelist.is_some())
-}
-
-pub async fn whitelist_user(
+pub async fn process_unban(
+    ctx: &serenity::client::Context,
     server_id: &serenity::GuildId,
-    user_id: &UserId,
+    user: &UserId,
 ) -> Result<bool, types::Error> {
-    update_user(user_id).await?;
-
-    let db = database_service::establish_connection().await?;
-
-    whitelist::ActiveModel {
-        server_snowflake: ActiveValue::Set(server_id.get() as i64),
-        user_snowflake: ActiveValue::Set(user_id.get() as i64),
-        ..Default::default()
+    if &get_report_server().await == server_id {
+        return Ok(false);
     }
-    .insert(&db)
-    .await?;
 
-    Ok(true)
-}
+    let ban = match server_id.get_ban(ctx, user.clone()).await {
+        Ok(Some(ban)) => ban,
+        Ok(None) => return Ok(false), // No ban found
+        Err(err) => return Err(Box::new(err)),
+    };
 
-pub async fn unwhitelist_user(
-    server_id: &serenity::GuildId,
-    user_id: &UserId,
-) -> Result<bool, types::Error> {
-    update_user(user_id).await?;
+    if ban.reason.is_none() || !ban.reason.unwrap().starts_with("Banned by Banshee") {
+        return Ok(false); // Not banned by Banshee, so skip.
+    }
 
-    let db = database_service::establish_connection().await?;
+    server_id.unban(ctx, user).await?;
 
-    let current_whitelist = whitelist::Entity::find()
-        .filter(whitelist::Column::ServerSnowflake.eq(server_id.get() as i64))
-        .filter(whitelist::Column::UserSnowflake.eq(user_id.get() as i64))
-        .one(&db)
-        .await?;
-
-    let current_whitelist: whitelist::Model = current_whitelist.unwrap();
-    current_whitelist.delete(&db).await?;
-
-    Ok(true)
+    return Ok(true);
 }

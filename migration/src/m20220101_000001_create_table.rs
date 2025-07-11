@@ -60,29 +60,14 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        manager
-            .create_table(
-                Table::create()
-                    .table(Whitelist::Table)
-                    .if_not_exists()
-                    .col(pk_auto(Whitelist::Id))
-                    .col(big_unsigned(Whitelist::ServerSnowflake))
-                    .col(big_unsigned(Whitelist::UserSnowflake))
-                    .col(timestamp_null(Whitelist::CreatedAt).default(Expr::current_timestamp()))
-                    .col(timestamp_null(Whitelist::UpdatedAt).default(Expr::current_timestamp()))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .from(Whitelist::Table, Whitelist::UserSnowflake)
-                            .to(User::Table, User::Snowflake),
-                    )
-                    .to_owned(),
-            )
-            .await?;
-
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(Report::Table).to_owned())
+            .await?;
+
         manager
             .drop_index(
                 Index::drop()
@@ -94,14 +79,6 @@ impl MigrationTrait for Migration {
 
         manager
             .drop_table(Table::drop().table(User::Table).to_owned())
-            .await?;
-
-        manager
-            .drop_table(Table::drop().table(Report::Table).to_owned())
-            .await?;
-
-        manager
-            .drop_table(Table::drop().table(Whitelist::Table).to_owned())
             .await?;
 
         Ok(())
@@ -129,16 +106,6 @@ enum Report {
     AuthorSnowflake,
     ReporterSnowflake,
     Status,
-    CreatedAt,
-    UpdatedAt,
-}
-
-#[derive(DeriveIden)]
-enum Whitelist {
-    Table,
-    Id,
-    ServerSnowflake,
-    UserSnowflake,
     CreatedAt,
     UpdatedAt,
 }

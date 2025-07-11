@@ -12,11 +12,10 @@ fn get_public_commands() -> Vec<types::Command> {
     vec![
         commands::pet::pet(),
         commands::help::help(),
+        commands::refresh::refresh(),
         commands::report::report(),
         commands::supers::supers(),
         commands::user::user(),
-        commands::whitelist::whitelist(),
-        commands::unwhitelist::unwhitelist(),
     ]
 }
 

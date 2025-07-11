@@ -8,9 +8,16 @@ pub async fn ban(
     #[description = "User to ban"] user: serenity::User,
     #[description = "Reason"] reason: Option<String>,
 ) -> Result<(), types::Error> {
-    // check perms
-
     ctx.defer_ephemeral().await?;
+
+    if !user_service::is_super_user(&ctx.author().id).await? {
+        ctx.send(
+            CreateReply::default()
+                .ephemeral(true)
+                .content("You must be a super user to run this command."),
+        ).await?;
+        return Ok(());
+    }
 
     if user_service::is_banshee_bot(&user.id, ctx.serenity_context()).await?
         || user_service::is_super_user(&user.id).await?
