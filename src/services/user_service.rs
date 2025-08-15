@@ -1,5 +1,5 @@
 use crate::{entities::user, services::config_service::get_report_server, types};
-use ::serenity::all::{Context, CreateMessage, GuildId, GuildPagination, UserId};
+use ::serenity::all::{Context, CreateMessage, GuildId, GuildPagination, User, UserId};
 use poise::serenity_prelude as serenity;
 use sea_orm::{
     query::*,
@@ -192,6 +192,7 @@ pub async fn ban(
                 }
             };
             sleep(Duration::from_millis(100)).await;
+            
         }
     }
 
@@ -242,6 +243,27 @@ pub async fn unban(ctx: &serenity::client::Context, user: &UserId) -> Result<boo
     }
 
     Ok(true)
+}
+
+pub async fn refresh_bans(
+    ctx: &serenity::client::Context,
+    server_id: &serenity::GuildId,
+) -> Result<(), types::Error> {
+    let db = database_service::establish_connection().await?;
+
+    let most_recent_users = user::Entity::find()
+        .filter(user::Column::Banned.eq(true))
+        .order_by_desc(user::Column::Id)
+        .limit(100)
+        .all(&db)
+        .await?;
+
+    for user in most_recent_users.iter() {
+        process_ban(ctx, server_id, &UserId::new(user.snowflake as u64), Some(user.ban_reason.clone())).await?;
+        sleep(Duration::from_millis(100)).await;
+    }
+
+    Ok(())
 }
 
 pub async fn get_ban_reason(user: &UserId) -> Result<String, types::Error> {
@@ -299,12 +321,6 @@ pub async fn process_ban(
 
     if &get_report_server().await == server_id {
         return Ok(false);
-    }
-
-    match server_id.member(ctx, user).await {
-        Ok(_member) => {} // Member is in the server, continue
-        Err(serenity::Error::Http(_)) => return Ok(false),
-        Err(err) => return Err(Box::new(err)),
     }
 
     match server_id.get_ban(ctx, user.clone()).await {

@@ -57,8 +57,13 @@ pub async fn generate_report_embed(
 ) -> Result<serenity::CreateEmbed, Error> {
     let embed = serenity::CreateEmbed::new()
         .author(
-            serenity::CreateEmbedAuthor::new(format!("{} ({})", author.name, author.tag()))
-                .icon_url(author.avatar_url().unwrap()),
+            serenity::CreateEmbedAuthor::new(format!(
+                "{} ({} - {})",
+                author.name,
+                author.tag(),
+                author.id.get()
+            ))
+            .icon_url(author.avatar_url().unwrap()),
         )
         .title(format!(
             "Report #{} - {}",
@@ -69,9 +74,10 @@ pub async fn generate_report_embed(
         .description(format!("**Message Content:**\n{}", message_body))
         .footer(
             serenity::CreateEmbedFooter::new(format!(
-                "Reported by {} ({})",
+                "Reported by {} ({} - {})",
                 reporter.name,
-                reporter.tag()
+                reporter.tag(),
+                reporter.id.get(),
             ))
             .icon_url(reporter.avatar_url().unwrap()),
         )
