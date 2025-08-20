@@ -4,7 +4,7 @@ This terms of service is for "Banshee Bot", the service. These terms are effecti
 
 ### Usage of Service
 
-By inviting the bot to your server you agree to the Terms of Service and Privacy Policy. If you do not agree to the Terms of Service or privacy policy you are prohibited from using the service.
+By inviting the bot to your server and/or using this bot, you agree to the Terms of Service and Privacy Policy. If you do not agree to the Terms of Service or privacy policy you are prohibited from using the service.
 
 By using this service you also agree to Discord's [Terms of Service](https://discord.com/terms), [Privacy Policy](https://discord.com/privacy), and [Community Guidelines](https://discord.com/guidelines). If you do not agree, then you are prohibited from using the service.
 
@@ -37,8 +37,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND EXPRESS OR IMPLIE
 ### Information We Collect
 
 - User IDs
+- Discord IDs and display names
 - Copies of chat messages the service deems nessecary to delete similar messages in the future.
-- Descriptions of user behavior created by the service.
+- Copies of chat messages reported to us by users.
+- Descriptions of user behavior created by the service, such as "advertising" or "spamming".
 
 ### Removal of Data
 
