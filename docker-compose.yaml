@@ -11,6 +11,7 @@ services:
       - banshee
     depends_on:
       - database
+    restart: always
   migration:
     build: ./migration
     environment:
