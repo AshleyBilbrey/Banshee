@@ -35,8 +35,6 @@ services:
       - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
       - ./postgresql.conf:/etc/postgresql.conf
       - ${HOST_DATA_LOCATION}:/var/lib/postgresql/data
-    ports:
-      - 5432:5432
     networks:
       - banshee
 networks:

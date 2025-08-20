@@ -77,7 +77,7 @@ async fn create_client(
 async fn main() {
     // Load environment variables and setup intents
     let token = env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
-    let intents = serenity::GatewayIntents::GUILD_MEMBERS;
+    let intents = serenity::GatewayIntents::empty();
 
     // Initialize framework and client
     let framework = create_framework();
