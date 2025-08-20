@@ -1,5 +1,5 @@
 # Banshee
-**Version two is currently in development. You can view the progress in the [version-2](https://github.com/AshleyBilbrey/Banshee/tree/version-2) branch.**
+⚠️ This documentation is slightly out of date because Version 2 recently released. Most commands are still the same, use `/` instead of `!b `. Update of the documentation in progress.
 
 Banshee will ban known spammers for you automatically!  
   
