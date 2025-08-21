@@ -151,8 +151,6 @@ pub async fn ban(
     user_model.ban_reason = Set(reason.clone().unwrap_or("No reason provided.".to_string()));
     user_model.save(&db).await?;
 
-    let mut ban_list = "".to_string();
-
     let mut guild_count = 200;
     let mut target = GuildId::new(1);
     while guild_count == 200 {
@@ -163,9 +161,6 @@ pub async fn ban(
         guild_count = guilds.len();
         for g in guilds.iter() {
             target = g.id;
-            ban_list.push_str("- ");
-            ban_list.push_str(&target.to_partial_guild(ctx).await?.name);
-            ban_list.push_str("\n");
             match process_ban(ctx, &g.id, user, reason.clone()).await {
                 Ok(_) => {}
                 Err(err) => {
@@ -183,7 +178,7 @@ pub async fn ban(
     }
 
     let private_channel = user.create_dm_channel(ctx).await?;
-    private_channel.send_message(ctx, CreateMessage::new().content(format!("You've been removed from the following Banshee protected servers for **{}**\n{}\n If you think this is a mistake, contact us at https://discord.gg/b8h9aKsGrT", reason.unwrap_or("Not Specified".to_string()), ban_list))).await?;
+    private_channel.send_message(ctx, CreateMessage::new().content(format!("You've been removed from Banshee protected servers for **{}**\n If you think this is a mistake, contact us at https://discord.gg/b8h9aKsGrT", reason.unwrap_or("Not Specified".to_string())))).await?;
 
     Ok(true)
 }
