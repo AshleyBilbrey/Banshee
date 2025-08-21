@@ -130,21 +130,7 @@ pub async fn ban(
     user: &UserId,
     reason: Option<String>,
 ) -> Result<bool, types::Error> {
-    let owners: HashSet<UserId> = match ctx.http.get_current_application_info().await {
-        Ok(info) => {
-            let mut owners = HashSet::new();
-            if let Some(team) = info.team {
-                owners.insert(team.owner_user_id);
-            } else if let Some(owner) = &info.owner {
-                owners.insert(owner.id);
-            }
-            owners
-        }
-        Err(why) => panic!("Could not access application info: {:?}", why),
-    };
-
     if is_super_user(user).await?
-        || owners.contains(user)
         || is_banshee_bot(user, ctx).await?
         || is_banned(user).await?
     {
@@ -302,20 +288,7 @@ pub async fn process_ban(
     user: &UserId,
     reason: Option<String>,
 ) -> Result<bool, types::Error> {
-    let owners: HashSet<UserId> = match ctx.http.get_current_application_info().await {
-        Ok(info) => {
-            let mut owners = HashSet::new();
-            if let Some(team) = info.team {
-                owners.insert(team.owner_user_id);
-            } else if let Some(owner) = &info.owner {
-                owners.insert(owner.id);
-            }
-            owners
-        }
-        Err(why) => panic!("Could not access application info: {:?}", why),
-    };
-
-    if is_super_user(user).await? || owners.contains(user) || is_banshee_bot(user, ctx).await? {
+    if is_super_user(user).await? || is_banshee_bot(user, ctx).await? {
         return Ok(false);
     }
 
