@@ -63,7 +63,7 @@ pub async fn generate_report_embed(
                 author.tag(),
                 author.id.get()
             ))
-            .icon_url(author.avatar_url().unwrap()),
+            .icon_url(author.avatar_url().unwrap_or("https://cdn.discordapp.com/embed/avatars/4.png".to_string())),
         )
         .title(format!(
             "Report #{} - {}",
@@ -79,7 +79,7 @@ pub async fn generate_report_embed(
                 reporter.tag(),
                 reporter.id.get(),
             ))
-            .icon_url(reporter.avatar_url().unwrap()),
+            .icon_url(reporter.avatar_url().unwrap_or("https://cdn.discordapp.com/embed/avatars/0.png".to_string())),
         )
         .timestamp(timestamp);
     Ok(embed)

@@ -6,7 +6,6 @@ use sea_orm::{
     sqlx::types::chrono::{self, Utc},
     ActiveModelTrait, ActiveValue, ColumnTrait, DbErr, EntityTrait, Set,
 };
-use std::collections::HashSet;
 use tokio::time::{sleep, Duration};
 
 use super::database_service;
