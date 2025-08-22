@@ -150,6 +150,17 @@ pub async fn ban(
     user_model.ban_reason = Set(reason.clone().unwrap_or("No reason provided.".to_string()));
     user_model.save(&db).await?;
 
+    match user.create_dm_channel(ctx).await {
+        Ok(private_channel) => {
+            if let Err(e) = private_channel.send_message(ctx, CreateMessage::new().content(format!("You've been removed from Banshee protected servers for **{}**\n If you think this is a mistake, contact us at https://discord.gg/b8h9aKsGrT", reason.clone().unwrap_or("Not Specified".to_string())))).await {
+                eprintln!("Failed to send DM to user {}: {:?}", user.get(), e);
+            }
+        },
+        Err(e) => {
+            eprintln!("Failed to create DM channel for user {}: {:?}", user.get(), e);
+        }
+    }
+
     let mut guild_count = 200;
     let mut target = GuildId::new(1);
     while guild_count == 200 {
@@ -175,9 +186,6 @@ pub async fn ban(
             
         }
     }
-
-    let private_channel = user.create_dm_channel(ctx).await?;
-    private_channel.send_message(ctx, CreateMessage::new().content(format!("You've been removed from Banshee protected servers for **{}**\n If you think this is a mistake, contact us at https://discord.gg/b8h9aKsGrT", reason.unwrap_or("Not Specified".to_string())))).await?;
 
     Ok(true)
 }
