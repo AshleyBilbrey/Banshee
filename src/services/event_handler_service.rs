@@ -98,7 +98,8 @@ async fn button_press_dismiss(
             .create_followup(
                 ctx,
                 CreateInteractionResponseFollowup::new()
-                    .content(format!("Dismissed report number {}.", report_id)),
+                    .content(format!("Dismissed report number {}.", report_id))
+                    .ephemeral(true),
             )
             .await?;
     }
