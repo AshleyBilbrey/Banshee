@@ -10,11 +10,14 @@ mod types;
 /// List of available commands
 fn get_public_commands() -> Vec<types::Command> {
     vec![
+        commands::allow::allow(),
+        commands::allowlist::allowlist(),
         commands::pet::pet(),
         commands::help::help(),
         commands::refresh::refresh(),
         commands::report::report(),
         commands::supers::supers(),
+        commands::unallow::unallow(),
         commands::user::user(),
     ]
 }
@@ -77,7 +80,7 @@ async fn create_client(
 async fn main() {
     // Load environment variables and setup intents
     let token = env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
-    let intents = serenity::GatewayIntents::empty();
+    let intents = serenity::GatewayIntents::GUILD_MEMBERS;
 
     // Initialize framework and client
     let framework = create_framework();

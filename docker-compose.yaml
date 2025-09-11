@@ -24,7 +24,7 @@ services:
       - migration
   database:
     command: postgres -c listen_addresses='*' -c config_file=/etc/postgresql.conf
-    image: postgres
+    image: postgres:17.4
     restart: always
     shm_size: 128mb
     environment:

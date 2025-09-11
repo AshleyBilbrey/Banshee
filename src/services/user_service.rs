@@ -1,5 +1,5 @@
 use crate::{entities::user, services::config_service::get_report_server, types};
-use ::serenity::all::{Context, CreateMessage, GuildId, GuildPagination, User, UserId};
+use ::serenity::all::{Context, CreateMessage, GuildId, GuildPagination, UserId};
 use poise::serenity_prelude as serenity;
 use sea_orm::{
     query::*,
