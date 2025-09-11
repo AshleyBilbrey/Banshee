@@ -1,4 +1,6 @@
 pub mod age;
+pub mod allow;
+pub mod allowlist;
 pub mod ban;
 pub mod help;
 pub mod pet;
@@ -7,6 +9,7 @@ pub mod register;
 pub mod report;
 pub mod supercmd;
 pub mod supers;
+pub mod unallow;
 pub mod unban;
 pub mod unsuper;
 pub mod user;
