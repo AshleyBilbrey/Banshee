@@ -1,9 +1,10 @@
-use crate::{services::{config_service::get_report_server, user_service::refresh_bans}, types};
 use poise::CreateReply;
 
-// Adds the last 100 users on Banshee's ban list to your server's ban last. (Server admin only)
+use crate::{services::user_service::remove_legacy_bans, types};
+
+/// Remove all legacy bans from Banshee.
 #[poise::command(slash_command)]
-pub async fn refresh(ctx: types::Context<'_>) -> Result<(), types::Error> {
+pub async fn removelegacybans(ctx: types::Context<'_>) -> Result<(), types::Error> {
     ctx.defer_ephemeral().await?;
 
     if ctx.guild_id().is_none() {
@@ -27,24 +28,14 @@ pub async fn refresh(ctx: types::Context<'_>) -> Result<(), types::Error> {
         return Ok(());
     }
 
-    if get_report_server().await == ctx.guild_id().unwrap() {
-        ctx.send(
+    remove_legacy_bans(ctx.serenity_context(), &ctx.guild_id().unwrap()).await?;
+
+    ctx.send(
             CreateReply::default()
-                .content("Cannot ban users on report server.")
+                .content("Removed all legacy Banshee bans from this server.")
                 .ephemeral(true),
         )
         .await?;
-        return Ok(());
-    }
-
-    refresh_bans(ctx.serenity_context(), &ctx.guild_id().unwrap()).await?;
-
-    ctx.send(
-        CreateReply::default()
-            .content("Added users to your ban list.")
-            .ephemeral(true),
-    )
-    .await?;
 
     Ok(())
 }

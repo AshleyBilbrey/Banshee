@@ -1,5 +1,9 @@
-use crate::{entities::user, services::config_service::get_report_server, types};
-use ::serenity::all::{Context, CreateMessage, GuildId, GuildPagination, UserId};
+use crate::{
+    entities::user,
+    services::{allow_list_service::is_allowed, config_service::get_report_server},
+    types,
+};
+use ::serenity::all::{Context, CreateMessage, GuildId, GuildPagination, UserId, UserPagination};
 use poise::serenity_prelude as serenity;
 use sea_orm::{
     query::*,
@@ -129,10 +133,7 @@ pub async fn ban(
     user: &UserId,
     reason: Option<String>,
 ) -> Result<bool, types::Error> {
-    if is_super_user(user).await?
-        || is_banshee_bot(user, ctx).await?
-        || is_banned(user).await?
-    {
+    if is_super_user(user).await? || is_banshee_bot(user, ctx).await? || is_banned(user).await? {
         return Ok(false);
     }
 
@@ -150,17 +151,6 @@ pub async fn ban(
     user_model.ban_reason = Set(reason.clone().unwrap_or("No reason provided.".to_string()));
     user_model.save(&db).await?;
 
-    match user.create_dm_channel(ctx).await {
-        Ok(private_channel) => {
-            if let Err(e) = private_channel.send_message(ctx, CreateMessage::new().content(format!("You've been removed from Banshee protected servers for **{}**\n If you think this is a mistake, contact us at https://discord.gg/b8h9aKsGrT", reason.clone().unwrap_or("Not Specified".to_string())))).await {
-                eprintln!("Failed to send DM to user {}: {:?}", user.get(), e);
-            }
-        },
-        Err(e) => {
-            eprintln!("Failed to create DM channel for user {}: {:?}", user.get(), e);
-        }
-    }
-
     let mut guild_count = 200;
     let mut target = GuildId::new(1);
     while guild_count == 200 {
@@ -171,26 +161,24 @@ pub async fn ban(
         guild_count = guilds.len();
         for g in guilds.iter() {
             target = g.id;
-            match process_ban(ctx, &g.id, user, reason.clone()).await {
+            match kick_user(ctx, &g.id, user, reason.clone()).await {
                 Ok(_) => {}
                 Err(err) => {
                     eprintln!(
-                        "Failed to ban user {} from guild {}: {:?}",
+                        "Failed to kick user {} from guild {}: {:?}",
                         user.get(),
                         g.id,
                         err
                     );
                 }
             };
-            sleep(Duration::from_millis(100)).await;
-            
         }
     }
 
     Ok(true)
 }
 
-pub async fn unban(ctx: &serenity::client::Context, user: &UserId) -> Result<bool, types::Error> {
+pub async fn unban(user: &UserId) -> Result<bool, types::Error> {
     update_user(user).await?;
 
     let db = database_service::establish_connection().await?;
@@ -205,53 +193,7 @@ pub async fn unban(ctx: &serenity::client::Context, user: &UserId) -> Result<boo
     user_model.ban_reason = Set("".to_string());
     user_model.save(&db).await?;
 
-    let mut guild_count = 200;
-    let mut target = GuildId::new(1);
-    while guild_count == 200 {
-        let guilds = ctx
-            .http
-            .get_guilds(Some(GuildPagination::After(target)), Some(200))
-            .await?;
-        guild_count = guilds.len();
-        for g in guilds.iter() {
-            target = g.id;
-            match process_unban(ctx, &g.id, user).await {
-                Ok(_) => {}
-                Err(err) => {
-                    eprintln!(
-                        "Failed to unban user {} from guild {}: {:?}",
-                        user.get(),
-                        g.id,
-                        err
-                    );
-                }
-            };
-            sleep(Duration::from_millis(100)).await;
-        }
-    }
-
     Ok(true)
-}
-
-pub async fn refresh_bans(
-    ctx: &serenity::client::Context,
-    server_id: &serenity::GuildId,
-) -> Result<(), types::Error> {
-    let db = database_service::establish_connection().await?;
-
-    let most_recent_users = user::Entity::find()
-        .filter(user::Column::Banned.eq(true))
-        .order_by_desc(user::Column::Id)
-        .limit(100)
-        .all(&db)
-        .await?;
-
-    for user in most_recent_users.iter() {
-        process_ban(ctx, server_id, &UserId::new(user.snowflake as u64), Some(user.ban_reason.clone())).await?;
-        sleep(Duration::from_millis(100)).await;
-    }
-
-    Ok(())
 }
 
 pub async fn get_ban_reason(user: &UserId) -> Result<String, types::Error> {
@@ -284,66 +226,77 @@ pub async fn get_update_time(user: &UserId) -> Result<Option<chrono::NaiveDateTi
     return Ok(None);
 }
 
-pub async fn process_ban(
+pub async fn kick_user(
     ctx: &serenity::client::Context,
     server_id: &serenity::GuildId,
     user: &UserId,
     reason: Option<String>,
-) -> Result<bool, types::Error> {
+) -> Result<(), types::Error> {
     if is_super_user(user).await? || is_banshee_bot(user, ctx).await? {
-        return Ok(false);
+        return Ok(());
     }
 
     if &get_report_server().await == server_id {
-        return Ok(false);
+        return Ok(());
+    }
+
+    if is_allowed(user, server_id).await? {
+        return Ok(());
     }
 
     match server_id.get_ban(ctx, user.clone()).await {
-        Ok(Some(_ban)) => return Ok(false), // Skip, user already banned
+        Ok(Some(_ban)) => return Ok(()), // Skip, user already banned
         Ok(None) => {}
         Err(err) => return Err(Box::new(err)),
     }
 
-    match server_id
+    let dm_channel = user.create_dm_channel(ctx).await;
+    if dm_channel.is_ok() {
+        let _ = dm_channel.unwrap().send_message(ctx, CreateMessage::new().content(format!(
+            "You have been removed from **{}** for **{}**. If you believe this is a mistake, please contact us at https://discord.gg/b8h9aKsGrT",
+            server_id.name(ctx).unwrap_or("Unknown".to_string()),
+            reason.clone().unwrap_or("Unknown".to_string()),
+        )));
+    }
+
+    let _ = server_id
         .ban_with_reason(
             ctx,
             user,
-            4,
-            if reason.is_some() {
-                format!("Banned by Banshee: {}", reason.unwrap())
-            } else {
-                "Banned by Banshee".to_string()
-            },
+            7,
+            format!(
+                "Banned by Banshee: {}",
+                reason.unwrap_or("Not Specified".to_string())
+            ),
         )
-        .await
-    {
-        Ok(()) => {}
-        Err(err) => return Err(Box::new(err)),
-    }
+        .await;
 
-    Ok(true)
+    sleep(Duration::from_secs(1)).await;
+
+    let _ = server_id.unban(ctx, user).await;
+
+    Ok(())
 }
 
-pub async fn process_unban(
+pub async fn remove_legacy_bans(
     ctx: &serenity::client::Context,
     server_id: &serenity::GuildId,
-    user: &UserId,
-) -> Result<bool, types::Error> {
-    if &get_report_server().await == server_id {
-        return Ok(false);
+) -> Result<(), types::Error> {
+    let mut ban_count = 200;
+    let mut target = UserId::new(0);
+    while ban_count == 200 {
+        let bans = server_id
+            .bans(ctx, Some(UserPagination::After(target)), Some(200))
+            .await
+            .unwrap();
+        ban_count = bans.iter().count();
+        for b in bans.iter() {
+            target = b.user.id;
+            if b.reason.is_some() && b.reason.clone().unwrap().starts_with("Banned by Banshee") {
+                let _ = server_id.unban(ctx, b.user.id).await;
+            }
+        }
     }
 
-    let ban = match server_id.get_ban(ctx, user.clone()).await {
-        Ok(Some(ban)) => ban,
-        Ok(None) => return Ok(false), // No ban found
-        Err(err) => return Err(Box::new(err)),
-    };
-
-    if ban.reason.is_none() || !ban.reason.unwrap().starts_with("Banned by Banshee") {
-        return Ok(false); // Not banned by Banshee, so skip.
-    }
-
-    server_id.unban(ctx, user).await?;
-
-    return Ok(true);
+    Ok(())
 }

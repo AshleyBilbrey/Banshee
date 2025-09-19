@@ -14,7 +14,7 @@ fn get_public_commands() -> Vec<types::Command> {
         commands::allowlist::allowlist(),
         commands::pet::pet(),
         commands::help::help(),
-        commands::refresh::refresh(),
+        commands::removelegacybans::removelegacybans(),
         commands::report::report(),
         commands::supers::supers(),
         commands::unallow::unallow(),
