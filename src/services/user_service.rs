@@ -252,11 +252,16 @@ pub async fn kick_user(
 
     let dm_channel = user.create_dm_channel(ctx).await;
     if dm_channel.is_ok() {
-        let _ = dm_channel.unwrap().send_message(ctx, CreateMessage::new().content(format!(
-            "You have been removed from **{}** for **{}**. If you believe this is a mistake, please contact us at https://discord.gg/b8h9aKsGrT",
-            server_id.name(ctx).unwrap_or("Unknown".to_string()),
+        dm_channel.unwrap()
+        .send_message(
+            ctx,
+            CreateMessage::new()
+                .content(format!(
+            "You have been removed from a server for **{}**. If you believe this is a mistake, please contact us at https://discord.gg/b8h9aKsGrT",
             reason.clone().unwrap_or("Unknown".to_string()),
-        )));
+        )),
+        )
+        .await?;
     }
 
     let _ = server_id
@@ -283,7 +288,7 @@ pub async fn remove_legacy_bans(
     server_id: &serenity::GuildId,
 ) -> Result<(), types::Error> {
     let mut ban_count = 200;
-    let mut target = UserId::new(0);
+    let mut target = UserId::new(1);
     while ban_count == 200 {
         let bans = server_id
             .bans(ctx, Some(UserPagination::After(target)), Some(200))

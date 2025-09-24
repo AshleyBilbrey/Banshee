@@ -1,4 +1,4 @@
-use crate::{services::allow_list_service::{is_allowed, unallow as service_unallow}, types};
+use crate::{services::{allow_list_service::{is_allowed, unallow as service_unallow}, user_service::{get_ban_reason, is_banned, kick_user}}, types};
 use poise::{serenity_prelude as serenity, CreateReply};
 
 /// Removes a user from the allow list. (Server admin only)
@@ -42,7 +42,9 @@ pub async fn unallow(
 
     service_unallow(&user.id, &ctx.guild_id().unwrap()).await?;
 
-    // TODO, check if user is banned.
+    if is_banned(&user.id).await? {
+        kick_user(ctx.serenity_context(), &ctx.guild_id().unwrap(), &user.id, Some(get_ban_reason(&user.id).await?)).await?;
+    }
 
     ctx.send(CreateReply::default().content("Removed user from the allow list.").ephemeral(true))
         .await?;
