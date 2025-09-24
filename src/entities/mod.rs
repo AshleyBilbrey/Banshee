@@ -2,5 +2,6 @@
 
 pub mod prelude;
 
+pub mod allow_list;
 pub mod report;
 pub mod user;

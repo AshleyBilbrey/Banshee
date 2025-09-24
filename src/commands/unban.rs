@@ -30,7 +30,7 @@ pub async fn unban(
         return Ok(());
     }
 
-    let result = user_service::unban(ctx.serenity_context(), &user.id).await?;
+    let result = user_service::unban(&user.id).await?;
     let response: String;
     if result {
         response = format!(

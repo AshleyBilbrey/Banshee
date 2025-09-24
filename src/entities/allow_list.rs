@@ -3,28 +3,31 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "user")]
+#[sea_orm(table_name = "allow_list")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    #[sea_orm(unique)]
-    pub snowflake: i64,
-    pub banned: bool,
-    pub ban_reason: String,
-    pub super_user: bool,
+    pub user_snowflake: i64,
+    pub guild_snowflake: i64,
     pub created_at: Option<DateTime>,
     pub updated_at: Option<DateTime>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::allow_list::Entity")]
-    AllowList,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::UserSnowflake",
+        to = "super::user::Column::Snowflake",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User,
 }
 
-impl Related<super::allow_list::Entity> for Entity {
+impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::AllowList.def()
+        Relation::User.def()
     }
 }
 

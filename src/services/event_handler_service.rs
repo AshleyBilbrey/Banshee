@@ -5,12 +5,12 @@ use super::{
     user_service::{is_banned, is_super_user},
 };
 use crate::{
-    services::user_service::ban,
+    services::user_service::{ban, get_ban_reason, kick_user},
     types::{self, ReportStatus},
 };
 use ::serenity::all::{
     ComponentInteraction, CreateInteractionResponse, CreateInteractionResponseFollowup,
-    CreateInteractionResponseMessage, CreateQuickModal, FullEvent, Interaction, UserId,
+    CreateInteractionResponseMessage, CreateQuickModal, FullEvent, GuildId, Interaction, UserId,
 };
 use poise::serenity_prelude as serenity;
 use std::error::Error;
@@ -24,6 +24,10 @@ pub async fn event_handler(
         if let Interaction::Component(component_interaction) = interaction {
             button_press(ctx, component_interaction).await?;
         }
+    }
+
+    if let FullEvent::GuildMemberAddition { new_member } = event {
+        let _ = handle_new_member(ctx, &new_member.user.id, &new_member.guild_id).await;
     }
 
     Ok(())
@@ -198,4 +202,24 @@ async fn button_press_ban(
     ban(ctx, &reported_user, Some(ban_reason.clone())).await?;
 
     Ok(())
+}
+
+async fn handle_new_member(
+    ctx: &serenity::client::Context,
+    new_member: &UserId,
+    joined_guild: &GuildId,
+) {
+    if is_banned(new_member).await.unwrap() {
+        let _ = kick_user(
+            ctx,
+            joined_guild,
+            new_member,
+            Some(
+                get_ban_reason(new_member)
+                    .await
+                    .unwrap_or("Unspecified".to_string()),
+            ),
+        )
+        .await;
+    }
 }
