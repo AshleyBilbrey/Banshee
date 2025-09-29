@@ -1,49 +1,57 @@
-# Banshee
-⚠️ This documentation is slightly out of date because Version 2 recently released. Most commands are still the same, use `/` instead of `!b `. Update of the documentation in progress.
+<img src="https://www.ashleybilbrey.com/public/img/projects/banshee/banshee-discord-bot.png" alt="Stylized text of banshee">
 
-Banshee will ban known spammers for you automatically!  
-  
-Banshee was developed to help deal with the problem of individuals mass joining Discord servers in the UC Davis community and spamming academic dishonesty or other commercial services. 
+# Banshee Bot
 
-Add Banshee bot to your server to help limit the amount of spam your server receives. Use !b refresh to add the existing ban list to your server bans, and any new spammers will automatically be added to your server ban list.
+Banshee Bot is a Discord bot to remove spammers and scammers from UC Davis community servers. It's designed with features for ease of use, set and forget for server admins, and transparency in mind. It's currently used on over 100 servers.
 
-We understand that allowing a bot to have ban permissions may be concerning, so Banshee bot has been built with a high level of transparency.
-- Significant bot actions, such as adding a user to the ban list, or a new super user, are broadcasted. To receive transparency messages user !b enroll.
-- Only super users can add users to the ban list. These are trusted users. You can view the list of super users with !b supers.
-- Code is open source. You can view the code here. https://github.com/AshleyBilbrey/Banshee
-- Banshee is a passive system, meaning it will not actively enforce the ban list. Banshee only automatically bans a user when they are added to the list, therefore you can unban a user and Banshee will not reban that user unless you use !b refresh. Using !b refresh will load the existing ban list.
-- Super users have a banning cooldown to prevent abuse.
-- All else fails, Banshee can just be kicked from the server to prevent it from making any other actions.
+UC Davis has a tight network of hundreds of Discord servers for classes, clubs, and other groups. With these servers so closely networked, it's very easy for bots that promote scams or academic dishonesty services to post on many of these servers, all at once. This requires that hundreds of individual server owners each ban the same account. Banshee Bot solves this problem by hosting a central reporting service, and maintaining a list of these accounts to be automatically removed. All a server owner needs to do is add the bot to their server, and Banshee will handle the rest.
 
-Banshee bot was made in association with the the UCD Directory Server and Cyber Security Club at UC Davis. More information about them in the links below.
-- Directory: https://discord.gg/ucf44wN
-- Cyber Security Club at UC Davis Server: https://discord.gg/y6K82wk6en
-- Cyber Security Club at UC Davis Website: https://daviscybersec.org/
+Banshee was developed in the Rust programming language with the [Poise](https://github.com/serenity-rs/poise)/[Serenity](https://serenity-rs.github.io/) framework for Discord bots. The code is open-source and [available on GitHub](https://github.com/AshleyBilbrey/Banshee).
 
-## Add
+Banshee Bot's profile photo was made by [Xenvita](https://www.deviantart.com/xen1231/art/Glitch-2-593312378) and used non-commercially (thank you for the great art!). Banshee Bot is not affiliated with UC Davis. I'm just a grad who developed and maintains it.
 
-To add this bot to your server, please use this link.  
-https://discord.com/api/oauth2/authorize?client_id=862520009770401794&scope=bot&permissions=10244
-Please ensure the bot has the correct permissions to do its job.  
-The first time you add the bot to the server, it's a good idea to use !b refresh to ban all the existing people on the list. Any new users added to the ban list will be added automatically.
+# Links
+<p>
+	<a href="https://discord.com/api/oauth2/authorize?client_id=862520009770401794&scope=bot&permissions=10244">Add to Your Server</a> -
+	<a href="https://discord.gg/2nmjrEFHxp">Join Community Server</a> -
+	<a href="https://github.com/AshleyBilbrey/Banshee">Visit GitHub</a>
+</p>
 
-## Commands
+# Features
+## Set and Forget
+Add Banshee to your Discord server, and it will handle the rest! When a known scam or spam account joins your server, it will automatically be removed. It will also automatically remove newly added malicious accounts to the ban list.
 
-- !b enroll - Allows you to enroll/unenroll in transparency broadcasts. Banshee will DM you when someone new is banned, when there are changes to the super user list, and more.
-- !b help - View information about Banshee.
-- !b refresh - For server owners to add all existing users from Banshee's ban list to the server bans.
-- !b supers - View the list of current super users.
-- !b userinfo :user: - View current info on a user, such as if they are banned or a super user.
+## Easy to Use
+Banshee Bot uses Discord's slash commands and context menu commands to create a seamless experience within Discord's UI. It's designed to be color coded and use rich embeds to make it easy to understand at a glance.
 
-Only for super users:
+<img src="https://www.ashleybilbrey.com/public/img/projects/banshee/banshee-report-rich-embed.png" alt="Three overlapping screenshots of color coded Discord rich embeds for an open report, a dismissed report, and a banned report.">
 
-- !b ban :user: :reason: - Accepts @ or user ID. This will toggle a ban of a user, which will propagate to all servers Banshee is in. Reasons will be added to server ban reasons. Bans will be broadcasted to enrolled users.
-- !b broadcast :message: - Have Banshee broadcast a message to all enrolled users.
-- !b filter :word: - Add a word to a global filter. Typically for server join links of known spammers.
-- !b filterlist - List all filtered words. Be careful where you use this command as it may be spammy.
-- !b super :user: - Toggle's super user status on user. This sends a broadcast for transparency.
+## Transparency & Security
+Banshee was designed with security and transparency in mind. The code is [open source](https://github.com/AshleyBilbrey/Banshee), so anyone can audit it to understand its behavior and potential vulnerabilities. You can always see which users are being removed from your Discord server by using Discord's built-in audit log feature. We also take the responsibility of administering Banshee seriously, so the list of our "super users" is always available. If you wish to prevent a user from being removed by Banshee on your server, you can add them to an allow list. Additionally, by the [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege), we only ask for the permissions that are necessary to operate the bot.
 
-## Report
+<img src="https://www.ashleybilbrey.com/public/img/projects/banshee/banshee-list-super-users.png" alt="The use of a Discord slash command 'supers', where Banshee Bot responds with a list of three super users.">
 
-Please remember to report any spammers to a super user on the Banshee Bot server https://discord.gg/b8h9aKsGrT.
-It would be helpful to have the spammer's userid, which you can turn on in developer settings, then right click on their name and then click 'Copy ID'. Thank you!
+# Commands
+## Reporting
+
+You can easily report spammers and scammers by opening the context menu on the offending message, going to "Apps", then clicking on "Report to Banshee".
+
+<img src="https://www.ashleybilbrey.com/public/img/projects/banshee/banshee-report-message.png" alt="The three dots next to a Discord message being selected, then apps being selected, then the text 'Report to Banshee' being selected.">
+
+## All Users
+* **/help [command]** – Show the help menu
+* **/supers** – List super users
+* **/user &lt;user&gt;** – Show information about a user
+
+## Server Admins
+* **/allow &lt;user&gt;** – Prevent Banshee from removing a user.
+* **/allowlist** – Show list of users allowed on this server.
+* **/removelegacybans** – Remove all legacy bans from Banshee.
+* **/unallow &lt;user&gt;** – Removes a user from the allow list.
+
+## Super Users
+* **/register** – Register command menu
+* **/super &lt;user&gt;** – Adds a new super user.
+* **/unsuper &lt;user&gt;** – Removes a super user
+* **/ban &lt;user&gt; [reason]** – Ban a user
+* **/unban &lt;user&gt;** – Unban a user
