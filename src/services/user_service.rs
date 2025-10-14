@@ -244,6 +244,10 @@ pub async fn kick_user(
         return Ok(());
     }
 
+    if server_id.member(ctx, user.clone()).await.is_err() {
+        return Ok(()); // Skip, user is not in server.
+    }
+
     match server_id.get_ban(ctx, user.clone()).await {
         Ok(Some(_ban)) => return Ok(()), // Skip, user already banned
         Ok(None) => {}
