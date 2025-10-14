@@ -41,10 +41,7 @@ pub async fn ban(
         return Ok(());
     }
 
-    let result = user_service::ban(ctx.serenity_context(), &user.id, reason.clone()).await?;
-    let response: String;
-    if result {
-        response = format!(
+    let response = format!(
             "{}'s account was banned{}.",
             user.name,
             reason
@@ -52,11 +49,12 @@ pub async fn ban(
                 .map(|r| format!(" for {}", r))
                 .unwrap_or_default()
         );
-    } else {
-        response = "There was a problem banning that user.".to_string();
-    }
 
     ctx.send(CreateReply::default().ephemeral(true).content(response))
         .await?;
+
+    if user_service::ban(ctx.serenity_context(), &user.id, reason.clone()).await.is_err() {
+        ctx.send(CreateReply::default().ephemeral(true).content("There was an issue banning that user.")).await?;
+    }
     Ok(())
 }

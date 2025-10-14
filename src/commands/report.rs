@@ -10,7 +10,7 @@ use ::serenity::all::{CreateEmbed, CreateMessage};
 use poise::serenity_prelude as serenity;
 
 /// Report a message
-#[poise::command(context_menu_command = "Report to Banshee", slash_command)]
+#[poise::command(context_menu_command = "Report to Banshee")]
 pub async fn report(
     ctx: types::Context<'_>,
     #[description = "Message to Report"] msg: serenity::Message,
