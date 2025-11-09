@@ -58,10 +58,9 @@ pub async fn generate_report_embed(
     let embed = serenity::CreateEmbed::new()
         .author(
             serenity::CreateEmbedAuthor::new(format!(
-                "{} ({} - {})",
+                "{} ({})",
                 author.name,
                 author.tag(),
-                author.id.get()
             ))
             .icon_url(author.avatar_url().unwrap_or("https://cdn.discordapp.com/embed/avatars/4.png".to_string())),
         )
@@ -74,10 +73,9 @@ pub async fn generate_report_embed(
         .description(format!("**Message Content:**\n{}", message_body))
         .footer(
             serenity::CreateEmbedFooter::new(format!(
-                "Reported by {} ({} - {})",
+                "Reported by {} ({})",
                 reporter.name,
                 reporter.tag(),
-                reporter.id.get(),
             ))
             .icon_url(reporter.avatar_url().unwrap_or("https://cdn.discordapp.com/embed/avatars/0.png".to_string())),
         )
