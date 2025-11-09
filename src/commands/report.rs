@@ -1,8 +1,9 @@
 use crate::{
     services::{
+        allow_list_service::is_allowed,
         config_service,
         report_service::*,
-        user_service::{is_banshee_bot, is_super_user},
+        user_service::{get_ban_reason, is_banned, is_banshee_bot, is_super_user, kick_user},
     },
     types::{self, ReportStatus},
 };
@@ -19,6 +20,7 @@ pub async fn report(
     let reporter = ctx.author();
     let author = &msg.author;
     let message = msg.content_safe(&ctx.cache());
+    let message_guild = ctx.guild_id().unwrap();
 
     if is_super_user(&author.id).await? {
         ctx.send(
@@ -46,6 +48,32 @@ pub async fn report(
         )
         .await?;
         return Ok(());
+    }
+
+    if is_allowed(&author.id, &message_guild).await? {
+        ctx.send(
+            poise::CreateReply::default()
+                .content(format!(
+                    "You can't report {} because they have been allow listed on this server.",
+                    author.name
+                ))
+                .ephemeral(true),
+        )
+        .await?;
+        return Ok(());
+    }
+
+    if is_banned(&author.id).await? {
+        ctx.send(
+            poise::CreateReply::default()
+                .content(format!(
+                    "Oops, that user was already supposed to be banned. Sorry!"
+                )).ephemeral(true)
+        ).await?;
+        msg.delete(ctx).await?;
+        let ban_reason = get_ban_reason(&author.id).await?;
+        kick_user(ctx.serenity_context(), &message_guild, &author.id, Some(ban_reason)).await?;
+        return Ok(())
     }
 
     let report_number =
