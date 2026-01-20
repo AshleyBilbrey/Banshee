@@ -1,7 +1,4 @@
-use std::{
-    isize,
-    sync::atomic::{AtomicIsize, Ordering},
-};
+use std::sync::atomic::{AtomicIsize, Ordering};
 
 use crate::{
     entities::user,
@@ -331,9 +328,9 @@ pub async fn get_number_of_banned_users() -> Result<isize, types::Error> {
         .all(&db)
         .await?;
 
-    let size = banned_users.iter().count() as isize;
+    let size = banned_users.len() as isize;
 
-    return Ok(size);
+    Ok(size)
 }
 
 pub async fn update_ban_count_status(
