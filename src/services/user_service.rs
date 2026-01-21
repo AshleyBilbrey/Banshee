@@ -1,9 +1,13 @@
+use std::sync::atomic::{AtomicIsize, Ordering};
+
 use crate::{
     entities::user,
     services::{allow_list_service::is_allowed, config_service::get_report_server},
     types,
 };
-use ::serenity::all::{Context, CreateMessage, GuildId, GuildPagination, UserId, UserPagination};
+use ::serenity::all::{
+    ActivityData, Context, CreateMessage, GuildId, GuildPagination, UserId, UserPagination,
+};
 use poise::serenity_prelude as serenity;
 use sea_orm::{
     query::*,
@@ -13,6 +17,8 @@ use sea_orm::{
 use tokio::time::{sleep, Duration};
 
 use super::database_service;
+
+static BAN_COUNT: AtomicIsize = AtomicIsize::new(0);
 
 pub async fn update_user(user_id: &serenity::UserId) -> Result<(), DbErr> {
     let db = database_service::establish_connection().await?;
@@ -175,10 +181,12 @@ pub async fn ban(
         }
     }
 
+    update_ban_count_status(&ctx, 1).await?;
+
     Ok(true)
 }
 
-pub async fn unban(user: &UserId) -> Result<bool, types::Error> {
+pub async fn unban(ctx: &serenity::client::Context, user: &UserId) -> Result<bool, types::Error> {
     update_user(user).await?;
 
     let db = database_service::establish_connection().await?;
@@ -192,6 +200,8 @@ pub async fn unban(user: &UserId) -> Result<bool, types::Error> {
     user_model.banned = Set(false);
     user_model.ban_reason = Set("".to_string());
     user_model.save(&db).await?;
+
+    update_ban_count_status(&ctx, -1).await?;
 
     Ok(true)
 }
@@ -306,6 +316,41 @@ pub async fn remove_legacy_bans(
             }
         }
     }
+
+    Ok(())
+}
+
+pub async fn get_number_of_banned_users() -> Result<isize, types::Error> {
+    let db = database_service::establish_connection().await?;
+
+    let banned_users = user::Entity::find()
+        .filter(user::Column::Banned.eq(true))
+        .all(&db)
+        .await?;
+
+    let size = banned_users.len() as isize;
+
+    Ok(size)
+}
+
+pub async fn update_ban_count_status(
+    ctx: &serenity::client::Context,
+    amount: isize,
+) -> Result<(), types::Error> {
+    let mut banned_user_count = BAN_COUNT.load(Ordering::Relaxed);
+
+    if BAN_COUNT.load(Ordering::Relaxed) == 0 {
+        banned_user_count = get_number_of_banned_users().await?;
+        BAN_COUNT.store(banned_user_count, Ordering::Relaxed);
+    } else {
+        banned_user_count = banned_user_count + amount;
+        BAN_COUNT.store(banned_user_count, Ordering::Relaxed);
+    }
+
+    ctx.set_activity(Some(ActivityData::custom(format!(
+        "🔨 Banned {} Accounts",
+        banned_user_count
+    ))));
 
     Ok(())
 }
