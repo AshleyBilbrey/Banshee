@@ -266,7 +266,7 @@ pub async fn kick_user(
 
     let dm_channel = user.create_dm_channel(ctx).await;
     if dm_channel.is_ok() {
-        dm_channel.unwrap()
+        let _ = dm_channel.unwrap()
         .send_message(
             ctx,
             CreateMessage::new()
@@ -275,7 +275,7 @@ pub async fn kick_user(
             reason.clone().unwrap_or("Unknown".to_string()),
         )),
         )
-        .await?;
+        .await;
     }
 
     let _ = server_id
