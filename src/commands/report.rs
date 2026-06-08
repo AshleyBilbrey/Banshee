@@ -68,12 +68,20 @@ pub async fn report(
             poise::CreateReply::default()
                 .content(format!(
                     "Oops, that user was already supposed to be banned. Sorry!"
-                )).ephemeral(true)
-        ).await?;
-        msg.delete(ctx).await?;
+                ))
+                .ephemeral(true),
+        )
+        .await?;
+        let _ = msg.delete(ctx).await;
         let ban_reason = get_ban_reason(&author.id).await?;
-        kick_user(ctx.serenity_context(), &message_guild, &author.id, Some(ban_reason)).await?;
-        return Ok(())
+        kick_user(
+            ctx.serenity_context(),
+            &message_guild,
+            &author.id,
+            Some(ban_reason),
+        )
+        .await?;
+        return Ok(());
     }
 
     let report_number =
