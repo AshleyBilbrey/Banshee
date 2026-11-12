@@ -52,7 +52,7 @@ async fn button_press(
     }
 
     if component_interaction.data.custom_id.starts_with("Dismiss") {
-        return button_press_dismiss(ctx, component_interaction, true).await;
+        return button_press_dismiss(ctx, component_interaction, false).await;
     }
 
     if component_interaction.data.custom_id.starts_with("Ban") {
@@ -75,7 +75,7 @@ async fn button_press(
 async fn button_press_dismiss(
     ctx: &serenity::client::Context,
     component_interaction: &ComponentInteraction,
-    respond: bool,
+    auto_dismissed: bool,
 ) -> Result<(), types::Error> {
     component_interaction.defer(ctx).await?;
 
@@ -94,19 +94,25 @@ async fn button_press_dismiss(
             .await?,
         report_id,
         types::ReportStatus::Dismissed,
+        auto_dismissed,
     )
     .await?;
 
-    if respond {
-        component_interaction
-            .create_followup(
-                ctx,
-                CreateInteractionResponseFollowup::new()
-                    .content(format!("Dismissed report number {}.", report_id))
-                    .ephemeral(true),
-            )
-            .await?;
-    }
+    component_interaction
+        .create_followup(
+            ctx,
+            CreateInteractionResponseFollowup::new()
+                .content(if auto_dismissed {
+                    format!(
+                        "Auto dismissed report number {} because they were banned or super user.",
+                        report_id
+                    )
+                } else {
+                    format!("Dismissed report number {}.", report_id)
+                })
+                .ephemeral(true),
+        )
+        .await?;
 
     Ok(())
 }
@@ -122,6 +128,7 @@ async fn button_press_ban(
     if is_super_user(&reported_user).await?
         || ctx.http.get_current_user().await?.id == reported_user
     {
+        button_press_dismiss(ctx, component_interaction, true).await?;
         component_interaction
             .create_followup(
                 ctx,
@@ -131,22 +138,24 @@ async fn button_press_ban(
             )
             .await?;
 
-        return Ok(button_press_dismiss(ctx, component_interaction, false).await?);
+        return Ok(());
     }
 
     if is_banned(&reported_user).await? {
-        component_interaction
-            .create_followup(
-                ctx,
-                CreateInteractionResponseFollowup::new()
-                    .ephemeral(true)
-                    .content("Oops, this user is already banned."),
-            )
-            .await?;
-
-        return Ok(button_press_dismiss(ctx, component_interaction, false).await?);
+        button_press_dismiss(ctx, component_interaction, true).await?;
+    } else {
+        handle_report_newly_banned(ctx, component_interaction, report_id, reported_user).await?;
     }
 
+    Ok(())
+}
+
+async fn handle_report_newly_banned(
+    ctx: &serenity::client::Context,
+    component_interaction: &ComponentInteraction,
+    report_id: i32,
+    reported_user: UserId,
+) -> Result<(), types::Error> {
     let modal = CreateQuickModal::new("Are you sure you want to ban?")
         .timeout(std::time::Duration::from_secs(600))
         .short_field("Ban Reason");

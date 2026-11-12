@@ -57,12 +57,12 @@ pub async fn generate_report_embed(
 ) -> Result<serenity::CreateEmbed, Error> {
     let embed = serenity::CreateEmbed::new()
         .author(
-            serenity::CreateEmbedAuthor::new(format!(
-                "{} ({})",
-                author.name,
-                author.tag(),
-            ))
-            .icon_url(author.avatar_url().unwrap_or("https://cdn.discordapp.com/embed/avatars/4.png".to_string())),
+            serenity::CreateEmbedAuthor::new(format!("{} ({})", author.name, author.tag(),))
+                .icon_url(
+                    author
+                        .avatar_url()
+                        .unwrap_or("https://cdn.discordapp.com/embed/avatars/4.png".to_string()),
+                ),
         )
         .title(format!(
             "Report #{} - {}",
@@ -77,7 +77,11 @@ pub async fn generate_report_embed(
                 reporter.name,
                 reporter.tag(),
             ))
-            .icon_url(reporter.avatar_url().unwrap_or("https://cdn.discordapp.com/embed/avatars/0.png".to_string())),
+            .icon_url(
+                reporter
+                    .avatar_url()
+                    .unwrap_or("https://cdn.discordapp.com/embed/avatars/0.png".to_string()),
+            ),
         )
         .timestamp(timestamp);
     Ok(embed)
@@ -119,6 +123,7 @@ pub async fn dismiss_report_chat(
     reporter: &serenity::User,
     report_number: i32,
     status: ReportStatus,
+    auto_dismissed: bool,
 ) -> Result<(), types::Error> {
     let report_embed = generate_report_embed(
         message_body,
@@ -146,7 +151,10 @@ pub async fn dismiss_report_chat(
         .send_message(
             ctx,
             CreateMessage::new()
-                .content("Your recent report was dismissed. Either it was declined, or the user was already banned. If you have any questions, please reach out. Even though this is an automated message, we really appreciate you taking the time to report. Thank you!").embed(report_embed),
+                .content(
+                    if auto_dismissed {"Your recent report was auto-dismissed, likely because that user was banned from a different report. Thank you for reporting."} 
+                    else {"Your recent report was dismissed. If you have any questions, please reach out. Thank you for taking the time to report."}
+                ).embed(report_embed),
         )
         .await?;
 
@@ -202,7 +210,8 @@ pub async fn ban_report_chat(
         .send_message(
             ctx,
             CreateMessage::new()
-                .content("A user was recently banned from your report. Even though this is an automated message, we really appreciate you taking the time to report. Thank you!").embed(report_embed),
+                .content("A user was recently banned from your report. Thank you.")
+                .embed(report_embed),
         )
         .await?;
 
