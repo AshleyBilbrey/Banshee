@@ -19,8 +19,16 @@ pub async fn report(
     ctx.defer_ephemeral().await?;
     let reporter = ctx.author();
     let author = &msg.author;
-    let message = msg.content_safe(&ctx.cache());
     let message_guild = ctx.guild_id().unwrap();
+    let mut message = msg.content_safe(&ctx.cache());
+
+    if msg.attachments.len() > 0 {
+        message.push_str("\n");
+        msg.attachments.iter().for_each(|attatchment| {
+            message.push_str("\n");
+            message.push_str(attatchment.proxy_url.as_str());
+        });
+    }
 
     if is_super_user(&author.id).await? {
         ctx.send(
